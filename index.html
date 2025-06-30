@@ -15,7 +15,7 @@
     header {
       background-color: #1b4c8a;
       color: white;
-      padding: 30px 20px;
+      padding: 20px;
       text-align: center;
     }
     main {
@@ -26,12 +26,16 @@
     section {
       margin-bottom: 40px;
     }
-    h1, h2 {
+    h1 {
+      color: white;
+      margin-bottom: 10px;
+    }
+    h2 {
       color: #1b4c8a;
     }
     .btn {
       display: inline-block;
-      margin-top: 20px;
+      margin-top: 10px;
       padding: 12px 20px;
       background-color: #1b4c8a;
       color: white;
@@ -39,11 +43,10 @@
       font-size: 16px;
       border-radius: 5px;
     }
-    iframe {
+    img.affiche {
       width: 100%;
-      height: 600px;
-      border: 2px solid #ccc;
       margin-top: 20px;
+      border: 2px solid #ccc;
     }
     footer {
       text-align: center;
@@ -55,36 +58,32 @@
 </head>
 <body>
   <header>
-    <h1>🎯 Alternance en Data – Samia Said Hassani</h1>
-    <p>Une candidature pour l'offre d'alternance Data Engineer/Ingénieur Données chez Dastra.</p>
+    <h1>Alternance en Data – Samia Said Hassani</h1>
+    <p>Une candidature pour l'offre d'alternance Data Engineer chez Dastra.</p>
   </header>
 
   <main>
     <section>
-      <h2>📌 Mon affiche de motivation</h2>
-      <iframe src="affiche_alternance_samia.pdf"></iframe>
-      <p style="text-align:center;">
-        <a class="btn" href="CV_data-engineer_Samia.pdf" target="_blank">📄 Télécharger mon CV</a>
+      <h2>👤 À propos</h2>
+      <p>
+        🎓 Étudiante en Master 1 Ingénierie Statistique & Data Science à l’Université Paris-Saclay  <br><br>
+        🧰 J’ai conçu chez Orange un outil local pour automatiser le traitement de fichiers complexes :<br>
+        ➤ Nettoyage, validation, règles métier en SQL<br>
+        ➤ Pipeline complet en Python + PostgreSQL + Streamlit<br>
+        ➤ Interface simple utilisée chaque semaine par les équipes métier<br><br>
+        📚 En cours : modélisation, traitement de données, automatisation, structuration de pipelines<br><br>
+        🎯 Objectif : contribuer à des projets concrets de transformation de données à grande échelle<br>
+        comme ceux menés chez Dastra (migration RGPD, nettoyage, normalisation, API)<br><br>
+        ✅ Ce que j’apporte : rigueur, curiosité, sens métier, clarté.<br>
+        Je documente ce que je fais, je pose les bonnes questions, et je cherche à livrer vite et bien.
       </p>
     </section>
 
     <section>
-      <h2>👤 À propos</h2>
-      <p>
-        🎓 Étudiante en Master Ingénierie Statistique & Data Science à l’Université Paris-Saclay  
-        <br><br>
-        🧰 J’ai conçu chez Orange un outil local pour automatiser le traitement de fichiers complexes :  
-        ➤ Nettoyage, validation, règles métier en SQL  
-        ➤ Pipeline complet en Python + PostgreSQL + Streamlit  
-        ➤ Interface simple utilisée chaque semaine par les équipes métier  
-        <br><br>
-        📚 En cours : modélisation, traitement de données, automatisation, base de données relationnelles, data visualisation  
-        <br><br>
-        🎯 Objectif : contribuer à des projets concrets de transformation de données à grande échelle  
-        comme ceux menés chez Dastra (migration RGPD, nettoyage, normalisation, API)  
-        <br><br>
-        ✅ Ce que j’apporte : rigueur, curiosité, sens métier, clarté.  
-        Je documente ce que je fais, je pose les bonnes questions, et je cherche à livrer vite et bien.
+      <h2>📌 Mon affiche de motivation</h2>
+      <img class="affiche" src="affiche_alternance_samia.pdf" alt="Affiche de motivation">
+      <p style="text-align:center;">
+        💼 <a class="btn" href="CV_data-engineer_Samia.pdf" target="_blank">Télécharger mon CV</a>
       </p>
     </section>
 
@@ -92,8 +91,7 @@
       <h2>📬 Me contacter</h2>
       <p>
         📞 <strong>06 64 20 63 21</strong><br>
-        📧 <strong>samia.shm46@gmail.com</strong><br>
-        💼 <a class="btn" href="CV_data-engineer_Samia.pdf" target="_blank">Télécharger mon CV</a>
+        📧 <strong>samia.shm46@gmail.com</strong>
       </p>
     </section>
   </main>
