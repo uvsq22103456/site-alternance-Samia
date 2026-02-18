@@ -56,6 +56,7 @@
         let activeSalonRoom = '';   
 
         let commonGoalsData = {};
+        let readingsData = {};
         let currentQuestions = [];
         let currentQuizIdx = 0;
         let quizScore = 0;
@@ -234,21 +235,11 @@
                 namesExplanations = data;
                 if(activeSalonRoom === 'noms' && salonViewMode === 'room') renderSalonContent();
             });
-            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'users_progress'), (snap) => {
-                let total = 0;
-                snap.forEach(doc => {
-                    const d = doc.data();
-                    if(d) {
-                        Object.values(d).forEach(day => {
-                            if(day && day.dhikr) {
-                                total += (day.dhikr.sub || 0) + (day.dhikr.alh || 0) + (day.dhikr.ast || 0) + (day.dhikr.akb || 0);
-                            }
-                        });
-                    }
-                });
-                globalDhikrCount = total;
+            // Compteur cumulé ALL TIME — ne baisse jamais même si on réinitialise
+            onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'dhikr_alltime', 'total'), (snap) => {
+                const count = snap.exists() ? (snap.data().count || 0) : 0;
                 const el = document.getElementById('global-dhikr-count');
-                if(el) el.innerText = total.toLocaleString();
+                if(el) el.innerText = count.toLocaleString();
             });
             onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'common_goals_daily'), (snap) => {
                 const data = {}; snap.forEach(doc => { data[doc.id] = doc.data(); });
@@ -273,9 +264,20 @@
             await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', collectionName, id));
         };
 
-        window.resetNameExpl = async (uid) => {
-            if(!confirm("Veux-tu modifier/supprimer ton explication ?")) return;
-            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'salon_names', `day_${activeDayIdx}`);
+        window.submitNameExpl = async (uid, dayKey) => {
+            const input = document.getElementById(`name-expl-${uid}`);
+            const txt = input ? input.value.trim() : '';
+            if(!txt) return;
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'salon_names', dayKey);
+            await setDoc(docRef, {
+                [uid]: { text: txt, author: currentUser.name, timestamp: Date.now() }
+            }, { merge: true });
+            showToast("Leçon publiée !");
+        };
+
+        window.resetNameExpl = async (uid, dayKey) => {
+            if(!confirm("Veux-tu modifier ton explication ?")) return;
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'salon_names', dayKey);
             await setDoc(docRef, { [uid]: null }, { merge: true });
         };
 
@@ -415,10 +417,28 @@
                     html += `</div>`;
                 }
                 else if (activeSalonRoom === 'noms') {
-                    const dayOffset = (activeDayIdx - 1) * 4; 
-                    const dayData = namesExplanations[`day_${activeDayIdx}`] || {};
+                    // Calcul du "round" actuel : avance seulement quand les 4 sœurs ont répondu
+                    // On cherche le premier jour sans réponse complète (4/4)
+                    let nomRound = 0;
+                    for(let d = 1; d <= 30; d++) {
+                        const dd = namesExplanations[`day_${d}`] || {};
+                        const allAnswered = USERS.every(u => dd[u.id] && dd[u.id].text);
+                        if(allAnswered) nomRound = d; // ce round est complété
+                        else break; // on s'arrête au premier round incomplet
+                    }
+                    // nomRound = nb de rounds complétés, le round en cours = nomRound + 1
+                    // mais on affiche toujours le round en cours (incomplet ou premier)
+                    const currentRound = nomRound; // index 0-based pour les noms
+                    const dayKey = `day_${nomRound + 1}`;
+                    const dayData = namesExplanations[dayKey] || {};
+                    const dayOffset = nomRound * 4;
+
                     html += `<div class="pb-24 space-y-6">`;
-                    html += `<div class="bg-amber-100 p-4 rounded-3xl text-center shadow-sm border border-amber-200"><h3 class="text-sm font-black text-amber-800 uppercase tracking-widest">Cercle de Science 📚</h3><p class="text-[10px] text-amber-600 italic">4 Noms par jour, une chacune !</p></div>`;
+                    html += `<div class="bg-amber-100 p-4 rounded-3xl text-center shadow-sm border border-amber-200">
+                        <h3 class="text-sm font-black text-amber-800 uppercase tracking-widest">Cercle de Science 📚</h3>
+                        <p class="text-[10px] text-amber-600 italic">Les noms avancent quand toutes les 4 ont répondu 🌟</p>
+                        <p class="text-[9px] text-amber-500 font-bold mt-1">Round ${nomRound + 1} / 30</p>
+                    </div>`;
                     html += `<div class="space-y-6">`;
                     USERS.forEach((u, i) => {
                         const nameIdx = (dayOffset + i) % 99; 
@@ -436,17 +456,17 @@
                                  </div>
                                  <div class="w-10 h-10 rounded-full ${u.color} flex items-center justify-center font-bold text-sm border-2 border-white shadow-sm">${u.name.charAt(0)}</div>
                             </div>
-                            ${userExpl ? 
+                            ${userExpl && userExpl.text ? 
                                 `<div class="bg-slate-50 p-4 rounded-2xl text-xs text-slate-700 leading-relaxed border border-slate-100 whitespace-pre-line">${userExpl.text}</div>
                                 <div class="mt-2 flex justify-between items-center">
                                     <span class="text-[8px] font-bold text-emerald-500 uppercase tracking-widest">Validé ✨</span>
-                                    ${isMe ? `<button onclick="window.resetNameExpl('${u.id}')" class="text-[8px] font-bold text-amber-500 uppercase flex items-center gap-1 border border-amber-100 px-2 py-1 rounded-lg bg-amber-50"><i data-lucide="rotate-ccw" class="w-3 h-3"></i> Modifier</button>` : ''}
+                                    ${isMe ? `<button onclick="window.resetNameExpl('${u.id}', '${dayKey}')" class="text-[8px] font-bold text-amber-500 uppercase flex items-center gap-1 border border-amber-100 px-2 py-1 rounded-lg bg-amber-50"><i data-lucide="rotate-ccw" class="w-3 h-3"></i> Modifier</button>` : ''}
                                 </div>`
                                 :
                                 (isMe ? 
-                                    `<div class="mt-2"><p class="text-[10px] text-rose-500 font-bold mb-2 uppercase">C'est ton tour ! Que signifie ce nom ?</p><textarea id="name-expl-${u.id}" rows="4" placeholder="Partage ta science..." class="w-full bg-slate-50 rounded-2xl p-3 text-xs outline-none mb-2 border border-slate-100"></textarea><button onclick="window.submitNameExpl('${u.id}')" class="w-full bg-slate-900 text-white py-3 rounded-xl font-black text-[10px] uppercase shadow-md">Publier ma leçon</button></div>`
+                                    `<div class="mt-2"><p class="text-[10px] text-rose-500 font-bold mb-2 uppercase">C'est ton tour ! Que signifie ce nom ?</p><textarea id="name-expl-${u.id}" rows="4" placeholder="Partage ta science..." class="w-full bg-slate-50 rounded-2xl p-3 text-xs outline-none mb-2 border border-slate-100"></textarea><button onclick="window.submitNameExpl('${u.id}', '${dayKey}')" class="w-full bg-slate-900 text-white py-3 rounded-xl font-black text-[10px] uppercase shadow-md">Publier ma leçon</button></div>`
                                     :
-                                    `<div class="bg-slate-50 p-4 rounded-2xl text-center border border-slate-100 border-dashed"><p class="text-[10px] text-slate-400 italic">En attente de ${u.name}...</p></div>`
+                                    `<div class="bg-slate-50 p-4 rounded-2xl text-center border border-slate-100 border-dashed"><p class="text-[10px] text-slate-400 italic">En attente de ${u.name}... ⏳</p></div>`
                                 )
                             }
                         </div>`;
@@ -498,17 +518,6 @@
             showToast("Amine 🤲");
         };
 
-        window.submitNameExpl = async (uid) => {
-            const input = document.getElementById(`name-expl-${uid}`);
-            const txt = input.value.trim();
-            if(!txt) return;
-            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'salon_names', `day_${activeDayIdx}`);
-            await setDoc(docRef, {
-                [uid]: { text: txt, author: currentUser.name, timestamp: Date.now() }
-            }, { merge: true });
-            showToast("Leçon publiée !");
-        };
-
         window.toggleCommonGoal = async (goalId) => {
             if(!currentUser) return;
             const docId = `day_${activeDayIdx}`;
@@ -517,6 +526,8 @@
             const userGoals = dayData[currentUser.id] || {};
             userGoals[goalId] = !userGoals[goalId];
             dayData[currentUser.id] = userGoals;
+            commonGoalsData[docId] = dayData; // mise à jour locale immédiate
+            renderSalonContent(); // re-rendu immédiat sans attendre Firebase
             await setDoc(docRef, dayData);
         };
 
@@ -607,15 +618,17 @@
             if (document.getElementById('pin-display').value === window.selectedLoginUser.pin) window.doLogin(window.selectedLoginUser);
             else { showToast("PIN incorrect !"); window.clearPin(); }
         };
-        window.doLogin = (user) => {
+        window.doLogin = async (user) => {
             currentUser = user;
             document.getElementById('auth-screen').classList.add('hidden');
             document.getElementById('app-content').classList.remove('hidden');
             document.getElementById('app-nav').classList.remove('hidden');
             document.getElementById('welcome-msg').innerText = `As salam aleykoum ${user.name} ✨`;
             syncData(user.id);
+            await loadReadings();
+            updateReadingsList();
         };
-        window.selectDay = (idx) => { activeDayIdx = idx; refreshUI(); };
+        window.selectDay = (idx) => { activeDayIdx = idx; refreshUI(); updateReadingsList(); };
         window.toggleFast = () => { userData[activeDayIdx].fasting = !userData[activeDayIdx].fasting; pushData(); refreshUI(); };
         window.togglePrayer = (i) => { 
             if(!userData[activeDayIdx].prayers) userData[activeDayIdx].prayers = [false,false,false,false,false];
@@ -628,15 +641,28 @@
              pushData(); refreshUI();
         };
         window.toggleTarawih = () => { userData[activeDayIdx].tarawih = !userData[activeDayIdx].tarawih; pushData(); refreshUI(); };
-        window.addDhikr = (key) => {
-            if(!userData[activeDayIdx].dhikr) userData[activeDayIdx].dhikr = { sub: 0, alh: 0, ast: 0, akb: 0 };
+        window.addDhikr = async (key) => {
+            if(!userData[activeDayIdx]) userData[activeDayIdx] = {};
+            if(!userData[activeDayIdx].dhikr) userData[activeDayIdx].dhikr = {};
+            // Sanitize : reset si undefined, null, NaN ou pas un nombre
+            const current = userData[activeDayIdx].dhikr[key];
+            if(typeof current !== 'number' || isNaN(current)) {
+                userData[activeDayIdx].dhikr[key] = 0;
+            }
             userData[activeDayIdx].dhikr[key]++;
             document.getElementById(`count-${key}`).innerText = userData[activeDayIdx].dhikr[key];
+            // Incrémenter le compteur global cumulé (ne baisse JAMAIS)
+            try {
+                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'dhikr_alltime', 'total'), { count: increment(1) });
+            } catch(e) {
+                // Le doc n'existe pas encore, on le crée
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'dhikr_alltime', 'total'), { count: 1 });
+            }
             pushData();
         };
         window.openResetModal = () => document.getElementById('reset-modal').classList.remove('hidden');
         window.closeResetModal = () => document.getElementById('reset-modal').classList.add('hidden');
-        window.confirmResetDhikr = () => { userData[activeDayIdx].dhikr = { sub: 0, alh: 0, ast: 0, akb: 0 }; refreshUI(); pushData(); window.closeResetModal(); };
+        window.confirmResetDhikr = () => { userData[activeDayIdx].dhikr = { sub: 0, alh: 0, ast: 0, akb: 0, tah: 0 }; refreshUI(); pushData(); window.closeResetModal(); };
         window.saveJournal = () => {
             userData[activeDayIdx].surah = document.getElementById('input-surah').value;
             userData[activeDayIdx].quranNotes = document.getElementById('input-quran-notes').value;
@@ -681,27 +707,72 @@
             window.clearPin();
         };
 
-        // ✅ FIX: addQuranReading moved here so it's always available
+        // Lectures stockées dans Firebase (document dédié par utilisateur, clés string propres)
+        async function loadReadings() {
+            try {
+                const ref = doc(db, 'artifacts', appId, 'public', 'data', 'readings', currentUser.id);
+                const snap = await getDoc(ref);
+                readingsData = snap.exists() ? snap.data() : {};
+            } catch(e) { readingsData = {}; }
+        }
+
+        async function saveReadings() {
+            try {
+                const ref = doc(db, 'artifacts', appId, 'public', 'data', 'readings', currentUser.id);
+                await setDoc(ref, readingsData);
+                return true;
+            } catch(e) { console.error('saveReadings error:', e); return false; }
+        }
+
         window.addQuranReading = async () => {
-            const surah = document.getElementById('input-surah-new').value;
-            const start = document.getElementById('input-quran-start').value;
-            const end = document.getElementById('input-quran-end').value;
+            const surahEl = document.getElementById('input-surah-new');
+            const startEl = document.getElementById('input-quran-start');
+            const endEl = document.getElementById('input-quran-end');
+            const surah = (surahEl ? surahEl.value : '').trim();
+            const start = (startEl ? startEl.value : '').trim();
+            const end = (endEl ? endEl.value : '').trim();
             if(!surah || !start) { showToast("Remplis la Sourate et le début !"); return; }
-            
-            if(!userData[activeDayIdx].readingLogs) userData[activeDayIdx].readingLogs = [];
-            userData[activeDayIdx].readingLogs.push({ surah, start, end, timestamp: Date.now() });
-            
-            document.getElementById('input-surah-new').value = "";
-            document.getElementById('input-quran-start').value = "";
-            document.getElementById('input-quran-end').value = "";
-            await pushData(); refreshUI(); showToast("Lecture ajoutée 📖");
+
+            const dayKey = `day_${activeDayIdx}`;
+            if(!Array.isArray(readingsData[dayKey])) readingsData[dayKey] = [];
+            readingsData[dayKey].push({ surah, start, end: end || '', timestamp: Date.now() });
+
+            if(surahEl) surahEl.value = "";
+            if(startEl) startEl.value = "";
+            if(endEl) endEl.value = "";
+
+            // Mise à jour DOM immédiate — pas d'attente Firebase pour l'affichage
+            updateReadingsList();
+            showToast("Lecture ajoutée 📖");
+            // Sauvegarde Firebase en arrière-plan
+            saveReadings();
         };
 
         window.removeQuranReading = async (index) => {
             if(!confirm("Supprimer cette lecture ?")) return;
-            userData[activeDayIdx].readingLogs.splice(index, 1);
-            await pushData(); refreshUI();
+            const dayKey = `day_${activeDayIdx}`;
+            if(!Array.isArray(readingsData[dayKey])) return;
+            readingsData[dayKey].splice(index, 1);
+            updateReadingsList();
+            saveReadings();
         };
+
+        function updateReadingsList() {
+            const readingsList = document.getElementById('quran-readings-list');
+            if(!readingsList) return;
+            const logs = readingsData[`day_${activeDayIdx}`] || [];
+            readingsList.innerHTML = logs.length > 0
+                ? logs.map((r, i) => `
+                    <div class="flex justify-between items-center text-[10px] py-2 border-b border-dashed border-emerald-100 last:border-0 bg-white px-3 rounded-lg shadow-sm">
+                        <div>
+                            <span class="font-bold text-emerald-800">${r.surah}</span>
+                            <span class="text-emerald-500 italic ml-1">(V.${r.start}${r.end ? '→' + r.end : ''})</span>
+                        </div>
+                        <button onclick="window.removeQuranReading(${i})" class="text-rose-300 ml-2">✕</button>
+                    </div>
+                `).join('')
+                : '<p class="text-[9px] text-emerald-300 italic py-2">Aucune lecture enregistrée aujourd\'hui</p>';
+        }
 
         window.saveTarawihStop = async () => {
             userData[activeDayIdx].tarawihStop = document.getElementById('input-tarawih-stop').value;
@@ -724,19 +795,19 @@
             const prayers = ["Fajr", "Dohr", "Asr", "Magh", "Isha"];
             document.getElementById('prayer-grid').innerHTML = prayers.map((n, i) => `<button onclick="window.togglePrayer(${i})" class="flex flex-col items-center gap-1 text-center"><div class="w-9 h-9 rounded-2xl flex items-center justify-center ${d.prayers && d.prayers[i] ? 'bg-rose-500 text-white' : 'bg-slate-50 text-slate-200'}"><i data-lucide="check" class="w-5 h-5"></i></div><span class="text-[7px] font-black uppercase text-slate-400">${n}</span></button>`).join('');
             
-            // ✅ FIX: Routine Fajr avec icônes lucide correctes et correspondantes
+            // Routine Fajr — emojis directs au lieu de Lucide (plus fiables dans innerHTML injecté)
             const suhoorSteps = [
-                { label: "Réveil",    icon: "alarm-clock" },
-                { label: "Tahajjud", icon: "moon-star" },
-                { label: "Suhoor",   icon: "utensils" },
-                { label: "Fajr",     icon: "sunrise" }
+                { label: "Réveil",    emoji: "⏰" },
+                { label: "Tahajjud", emoji: "🌙" },
+                { label: "Suhoor",   emoji: "🍽️" },
+                { label: "Fajr",     emoji: "🌅" }
             ];
             const suhoorStatus = d.suhoorRoutine || [false, false, false, false];
             document.getElementById('suhoor-routine-grid').innerHTML = suhoorSteps.map((step, i) => {
                 const isActive = suhoorStatus[i];
-                return `<button onclick="window.toggleSuhoorRoutine(${i})" class="flex flex-col items-center gap-2 p-3 rounded-2xl border ${isActive ? 'bg-white/20 border-white text-white shadow-inner' : 'bg-white/5 border-white/10 text-blue-200'} transition-all duration-300 backdrop-blur-sm">
-                    <i data-lucide="${step.icon}" class="w-5 h-5 ${isActive ? 'text-white' : 'text-blue-200'}"></i>
-                    <span class="text-[8px] font-black uppercase tracking-widest">${step.label}</span>
+                return `<button onclick="window.toggleSuhoorRoutine(${i})" class="flex flex-col items-center gap-2 p-3 rounded-2xl border ${isActive ? 'bg-white/20 border-white shadow-inner' : 'bg-white/5 border-white/10'} transition-all duration-300 backdrop-blur-sm">
+                    <span class="text-xl ${isActive ? 'opacity-100' : 'opacity-50'}">${step.emoji}</span>
+                    <span class="text-[8px] font-black uppercase tracking-widest ${isActive ? 'text-white' : 'text-blue-200'}">${step.label}</span>
                 </button>`;
             }).join('');
 
@@ -751,32 +822,19 @@
             document.getElementById('custom-recipes-list').innerHTML = userData.customRecipes?.length > 0 ? userData.customRecipes.map((rec, i) => `<div class="flex items-center justify-between bg-rose-50/50 p-3 rounded-xl mb-2 border border-rose-100"><span class="text-xs font-semibold text-rose-700 text-left">🍴 ${rec}</span><button onclick="window.removeRecipe(${i})" class="text-rose-300"><i data-lucide="trash-2" class="w-3 h-3"></i></button></div>`).join('') : '<p class="text-[9px] text-slate-300 italic text-center text-center">Carnet vide...</p>';
             
             updateWaterUI();
-            const dh = d.dhikr && typeof d.dhikr === 'object' ? d.dhikr : { sub: 0, alh: 0, ast: 0, akb: 0 };
+            const dh = d.dhikr && typeof d.dhikr === 'object' ? d.dhikr : { sub: 0, alh: 0, ast: 0, akb: 0, tah: 0 };
             document.getElementById('count-sub').innerText = dh.sub || 0;
             document.getElementById('count-alh').innerText = dh.alh || 0;
             document.getElementById('count-ast').innerText = dh.ast || 0;
             document.getElementById('count-akb').innerText = dh.akb || 0;
+            document.getElementById('count-tah').innerText = dh.tah || 0;
             document.getElementById('input-surah').value = d.surah || "";
             document.getElementById('input-quran-notes').value = d.quranNotes || "";
             document.getElementById('input-tarawih-notes').value = d.tarawihNotes || "";
             document.getElementById('input-journal').value = d.journal || "";
 
-            // ✅ FIX: Quran readings list rendered dynamically in refreshUI
-            const readingsList = document.getElementById('quran-readings-list');
-            if(readingsList) {
-                const logs = d.readingLogs || [];
-                readingsList.innerHTML = logs.length > 0
-                    ? logs.map((r, i) => `
-                        <div class="flex justify-between items-center text-[10px] py-2 border-b border-dashed border-emerald-100 last:border-0 bg-white px-3 rounded-lg shadow-sm">
-                            <div>
-                                <span class="font-bold text-emerald-800">${r.surah}</span> 
-                                <span class="text-emerald-500 italic ml-1">(V. ${r.start} à ${r.end})</span>
-                            </div>
-                            <button onclick="window.removeQuranReading(${i})" class="text-rose-300 hover:text-rose-500"><i data-lucide="x" class="w-3 h-3"></i></button>
-                        </div>
-                    `).join('')
-                    : '<p class="text-[9px] text-emerald-300 italic py-2">Aucune lecture enregistrée aujourd\'hui</p>';
-            }
+            // Lectures Coran
+            updateReadingsList();
 
             if(!document.getElementById('tab-salon').classList.contains('hidden')) { renderSalonContent(); }
             lucide.createIcons();
@@ -1031,10 +1089,34 @@
         </div>
         <h3 class="text-sm font-black text-rose-600 italic mt-4 mb-4 text-center">Mon Tasbih ✨</h3>
         <div class="grid grid-cols-2 gap-4 w-full px-4 text-center">
-            <button onclick="window.addDhikr('sub')" class="bg-white p-5 rounded-[2rem] border border-rose-50 shadow-sm active:scale-95 transition-all text-center"><p class="text-base font-black text-rose-600 mb-1 text-center">Subhanallah</p><p class="text-[8px] text-slate-400 uppercase font-black tracking-widest mb-3 text-center">Gloire à Allah</p><div class="text-3xl font-black text-slate-800 text-center" id="count-sub">0</div></button>
-            <button onclick="window.addDhikr('alh')" class="bg-white p-5 rounded-[2rem] border border-rose-50 shadow-sm active:scale-95 transition-all text-center"><p class="text-base font-black text-rose-600 mb-1 text-center">Alhamdulillah</p><p class="text-[8px] text-slate-400 uppercase font-black tracking-widest mb-3 text-center">Louange à Allah</p><div class="text-3xl font-black text-slate-800 text-center" id="count-alh">0</div></button>
-            <button onclick="window.addDhikr('ast')" class="bg-white p-5 rounded-[2rem] border border-rose-50 shadow-sm active:scale-95 transition-all text-center"><p class="text-lg font-black text-rose-600 mb-1 text-center">Astaghfirullah</p><p class="text-[8px] text-slate-400 uppercase font-black tracking-widest mb-3 text-center">Pardon</p><div class="text-3xl font-black text-slate-800 text-center" id="count-ast">0</div></button>
-            <button onclick="window.addDhikr('akb')" class="bg-white p-5 rounded-[2rem] border border-rose-50 shadow-sm active:scale-95 transition-all text-center"><p class="text-base font-black text-rose-600 mb-1 text-center">Allahu Akbar</p><p class="text-[8px] text-slate-400 uppercase font-black tracking-widest mb-3 text-center">Plus Grand</p><div class="text-3xl font-black text-slate-800 text-center" id="count-akb">0</div></button>
+            <button onclick="window.addDhikr('sub')" class="bg-white p-5 rounded-[2rem] border border-rose-50 shadow-sm active:scale-95 transition-all text-center">
+                <p class="text-base font-black text-rose-600 mb-1">Subhanallah</p>
+                <p class="text-[8px] text-slate-400 uppercase font-black tracking-widest mb-3">Gloire et pureté à Allah</p>
+                <div class="text-3xl font-black text-slate-800" id="count-sub">0</div>
+            </button>
+            <button onclick="window.addDhikr('alh')" class="bg-white p-5 rounded-[2rem] border border-rose-50 shadow-sm active:scale-95 transition-all text-center">
+                <p class="text-base font-black text-rose-600 mb-1">Alhamdulillah</p>
+                <p class="text-[8px] text-slate-400 uppercase font-black tracking-widest mb-3">Toute louange appartient à Allah</p>
+                <div class="text-3xl font-black text-slate-800" id="count-alh">0</div>
+            </button>
+            <button onclick="window.addDhikr('akb')" class="bg-white p-5 rounded-[2rem] border border-rose-50 shadow-sm active:scale-95 transition-all text-center">
+                <p class="text-base font-black text-rose-600 mb-1">Allahu Akbar</p>
+                <p class="text-[8px] text-slate-400 uppercase font-black tracking-widest mb-3">Allah est le Plus Grand</p>
+                <div class="text-3xl font-black text-slate-800" id="count-akb">0</div>
+            </button>
+            <button onclick="window.addDhikr('ast')" class="bg-white p-5 rounded-[2rem] border border-rose-50 shadow-sm active:scale-95 transition-all text-center">
+                <p class="text-sm font-black text-rose-600 mb-1">Astaghfirullah</p>
+                <p class="text-[8px] text-slate-400 uppercase font-black tracking-widest mb-3">Je demande pardon à Allah</p>
+                <div class="text-3xl font-black text-slate-800" id="count-ast">0</div>
+            </button>
+        </div>
+        <!-- La ilaha illallah — pleine largeur -->
+        <div class="w-full px-4 mt-2">
+            <button onclick="window.addDhikr('tah')" class="w-full bg-gradient-to-r from-rose-50 to-amber-50 border border-rose-100 p-5 rounded-[2rem] shadow-sm active:scale-95 transition-all text-center">
+                <p class="text-base font-black text-rose-600 mb-1">Lâ ilâha illallâh</p>
+                <p class="text-[8px] text-slate-400 uppercase font-black tracking-widest mb-3">Il n'y a de dieu qu'Allah</p>
+                <div class="text-3xl font-black text-slate-800" id="count-tah">0</div>
+            </button>
         </div>
         <button onclick="window.openResetModal()" class="mt-8 text-slate-300 font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 bg-white px-6 py-3 rounded-full shadow-sm mx-auto text-center border border-slate-100"><i data-lucide="rotate-ccw" class="w-3 h-3"></i> Réinitialiser</button>
     </div>
