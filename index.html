@@ -15,7 +15,6 @@
         import { getFirestore, doc, setDoc, getDoc, collection, addDoc, onSnapshot, updateDoc, arrayUnion, arrayRemove, increment, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 
-        // --- CONFIGURATION FIREBASE ---
         const firebaseConfig = {
             apiKey: "AIzaSyCBSj_Axhnldf2cz5hVyJaOwJWQ5c_l-Tk",
             authDomain: "bu-buddy-4bafe.firebaseapp.com",
@@ -30,22 +29,38 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
         
-        // V5 pour garder tes données
         const appId = 'ramadan-sisters-final-app-v5'; 
 
-        window.db = db; window.doc = doc; window.setDoc = setDoc; window.getDoc = getDoc;
-        window.collection = collection; window.addDoc = addDoc; window.deleteDoc = deleteDoc;
-        window.onSnapshot = onSnapshot; window.updateDoc = updateDoc; window.arrayUnion = arrayUnion;
+        window.db = db;
+        window.doc = doc;
+        window.setDoc = setDoc;
+        window.getDoc = getDoc;
+        window.collection = collection;
+        window.addDoc = addDoc;
+        window.deleteDoc = deleteDoc;
+        window.onSnapshot = onSnapshot;
+        window.updateDoc = updateDoc;
+        window.arrayUnion = arrayUnion;
 
         let currentUser = null;
         let activeDayIdx = 1;
         let userData = {};
         
-        let sharedMessages = []; let gratitudeMessages = []; let duasList = []; let namesExplanations = {};
+        let sharedMessages = [];
+        let gratitudeMessages = [];
+        let duasList = [];
+        let namesExplanations = {};
         let globalDhikrCount = 0;
-        let salonViewMode = 'menu'; let activeSalonRoom = '';   
+        
+        let salonViewMode = 'menu'; 
+        let activeSalonRoom = '';   
+
         let commonGoalsData = {};
-        let currentQuestions = []; let currentQuizIdx = 0; let quizScore = 0; let currentTheme = ""; let isQuizProcessing = false;
+        let currentQuestions = [];
+        let currentQuizIdx = 0;
+        let quizScore = 0;
+        let currentTheme = ""; 
+        let isQuizProcessing = false;
         
         const USERS = [
             { id: 'samia', name: 'Samia', pin: '2025', color: 'bg-rose-100 text-rose-600' },
@@ -54,14 +69,141 @@
             { id: 'cherryl', name: 'Cherryl', pin: '1303', color: 'bg-purple-100 text-purple-600' }
         ];
 
-        // LISTE COMPRESSÉE
-        const ALLAH_NAMES = [{n:"Allah",t:"Dieu"},{n:"Ar-Rahman",t:"Le Tout-Miséricordieux"},{n:"Ar-Rahim",t:"Le Très-Miséricordieux"},{n:"Al-Malik",t:"Le Souverain"},{n:"Al-Quddus",t:"Le Saint"},{n:"As-Salam",t:"La Paix"},{n:"Al-Mu'min",t:"Le Croyant"},{n:"Al-Muhaymin",t:"Le Prédominant"},{n:"Al-Aziz",t:"Le Tout-Puissant"},{n:"Al-Jabbar",t:"Le Contraignant"},{n:"Al-Mutakabbir",t:"Le Superbe"},{n:"Al-Khaliq",t:"Le Créateur"},{n:"Al-Bari",t:"Le Producteur"},{n:"Al-Musawwir",t:"Le Façonneur"},{n:"Al-Ghaffar",t:"Le Grand Pardonneur"},{n:"Al-Qahhar",t:"Le Dominateur Suprême"},{n:"Al-Wahhab",t:"Le Tout-Donateur"},{n:"Ar-Razzaq",t:"Le Grand Pourvoyeur"},{n:"Al-Fattah",t:"Le Grand Juge"},{n:"Al-Alim",t:"L'Omniscient"},{n:"Al-Qabid",t:"Celui qui retient"},{n:"Al-Basit",t:"Celui qui étend"},{n:"Al-Khafid",t:"Celui qui abaisse"},{n:"Ar-Rafi",t:"Celui qui élève"},{n:"Al-Mu'izz",t:"Celui qui donne la puissance"},{n:"Al-Mudhill",t:"Celui qui humilie"},{n:"As-Sami",t:"L'Audient"},{n:"Al-Basir",t:"Le Clairvoyant"},{n:"Al-Hakam",t:"Le Juge"},{n:"Al-Adl",t:"Le Juste"},{n:"Al-Latif",t:"Le Subtil"},{n:"Al-Khabir",t:"Le Bien-Informé"},{n:"Al-Halim",t:"Le Clément"},{n:"Al-Azim",t:"L'Immense"},{n:"Al-Ghafur",t:"Le Pardonneur"},{n:"Ash-Shakur",t:"Le Très-Reconnaissant"},{n:"Al-Ali",t:"Le Très-Haut"},{n:"Al-Kabir",t:"Le Très-Grand"},{n:"Al-Hafiz",t:"Le Gardien"},{n:"Al-Muqit",t:"Le Nourricier"},{n:"Al-Hasib",t:"Celui qui tient compte"},{n:"Al-Jalil",t:"Le Majestueux"},{n:"Al-Karim",t:"Le Tout-Généreux"},{n:"Ar-Raqib",t:"L'Observateur"},{n:"Al-Mujib",t:"Celui qui exauce"},{n:"Al-Wasi",t:"Le Vaste"},{n:"Al-Hakim",t:"Le Sage"},{n:"Al-Wadud",t:"Le Tout-Affectueux"},{n:"Al-Majid",t:"Le Tout-Glorieux"},{n:"Al-Ba'ith",t:"Celui qui ressuscite"},{n:"Ash-Shahid",t:"Le Témoin"},{n:"Al-Haqq",t:"Le Vrai"},{n:"Al-Wakil",t:"Le Gérant"},{n:"Al-Qawiyy",t:"Le Fort"},{n:"Al-Matin",t:"Le Robuste"},{n:"Al-Waliyy",t:"Le Protecteur"},{n:"Al-Hamid",t:"Le Digne de Louange"},{n:"Al-Muhsi",t:"Celui qui dénombre"},{n:"Al-Mubdi",t:"L'Auteur"},{n:"Al-Mu'id",t:"Celui qui redonne vie"},{n:"Al-Muhyi",t:"Celui qui fait vivre"},{n:"Al-Mumit",t:"Celui qui fait mourir"},{n:"Al-Hayy",t:"Le Vivant"},{n:"Al-Qayyum",t:"Le Subsistant par lui-même"},{n:"Al-Wajid",t:"L'Opulent"},{n:"Al-Majid",t:"Le Noble"},{n:"Al-Wahid",t:"L'Unique"},{n:"As-Samad",t:"Le Soutien Universel"},{n:"Al-Qadir",t:"Le Puissant"},{n:"Al-Muqtadir",t:"Le Détenteur du Pouvoir"},{n:"Al-Muqaddim",t:"Celui qui met en avant"},{n:"Al-Mu'akhkhir",t:"Celui qui met en arrière"},{n:"Al-Awwal",t:"Le Premier"},{n:"Al-Akhir",t:"Le Dernier"},{n:"Az-Zahir",t:"L'Apparent"},{n:"Al-Batin",t:"Le Caché"},{n:"Al-Wali",t:"Le Maître"},{n:"Al-Muta'ali",t:"Le Sublime"},{n:"Al-Barr",t:"Le Bienfaisant"},{n:"At-Tawwab",t:"L'Accueillant au repentir"},{n:"Al-Muntaqim",t:"Le Vengeur"},{n:"Al-Afuww",t:"L'Indulgent"},{n:"Ar-Ra'uf",t:"Le Bienveillant"},{n:"Malik-ul-Mulk",t:"Le Maître de la Royauté"},{n:"Dhul-Jalal-wal-Ikram",t:"Le Détenteur de la Majesté"},{n:"Al-Muqsit",t:"L'Équitable"},{n:"Al-Jami",t:"Le Rassembleur"},{n:"Al-Ghani",t:"Le Riche"},{n:"Al-Mughni",t:"Celui qui enrichit"},{n:"Al-Mani",t:"Le Défenseur"},{n:"Ad-Darr",t:"Celui qui peut nuire"},{n:"An-Nafi",t:"L'Utile"},{n:"An-Nur",t:"La Lumière"},{n:"Al-Hadi",t:"Le Guide"},{n:"Al-Badi",t:"L'Inventeur"},{n:"Al-Baqi",t:"Le Permanent"},{n:"Al-Warith",t:"L'Héritier"},{n:"Ar-Rashid",t:"Le Droit"},{n:"As-Sabur",t:"Le Patient"}];
+        const ALLAH_NAMES = [
+            {n: "Allah", t: "Dieu"}, {n: "Ar-Rahman", t: "Le Tout-Miséricordieux"}, {n: "Ar-Rahim", t: "Le Très-Miséricordieux"}, {n: "Al-Malik", t: "Le Souverain"}, {n: "Al-Quddus", t: "Le Saint"},
+            {n: "As-Salam", t: "La Paix"}, {n: "Al-Mu'min", t: "Le Croyant / La Sauvegarde"}, {n: "Al-Muhaymin", t: "Le Prédominant"}, {n: "Al-Aziz", t: "Le Tout-Puissant"}, {n: "Al-Jabbar", t: "Le Contraignant"},
+            {n: "Al-Mutakabbir", t: "Le Superbe"}, {n: "Al-Khaliq", t: "Le Créateur"}, {n: "Al-Bari", t: "Le Producteur"}, {n: "Al-Musawwir", t: "Le Façonneur"}, {n: "Al-Ghaffar", t: "Le Grand Pardonneur"},
+            {n: "Al-Qahhar", t: "Le Dominateur Suprême"}, {n: "Al-Wahhab", t: "Le Tout-Donateur"}, {n: "Ar-Razzaq", t: "Le Grand Pourvoyeur"}, {n: "Al-Fattah", t: "Le Grand Juge / L'Ouvreur"}, {n: "Al-Alim", t: "L'Omniscient"},
+            {n: "Al-Qabid", t: "Celui qui retient"}, {n: "Al-Basit", t: "Celui qui étend"}, {n: "Al-Khafid", t: "Celui qui abaisse"}, {n: "Ar-Rafi", t: "Celui qui élève"}, {n: "Al-Mu'izz", t: "Celui qui donne la puissance"},
+            {n: "Al-Mudhill", t: "Celui qui humilie"}, {n: "As-Sami", t: "L'Audient"}, {n: "Al-Basir", t: "Le Clairvoyant"}, {n: "Al-Hakam", t: "Le Juge"}, {n: "Al-Adl", t: "Le Juste"},
+            {n: "Al-Latif", t: "Le Subtil"}, {n: "Al-Khabir", t: "Le Bien-Informé"}, {n: "Al-Halim", t: "Le Clément"}, {n: "Al-Azim", t: "L'Immense"}, {n: "Al-Ghafur", t: "Le Pardonneur"},
+            {n: "Ash-Shakur", t: "Le Très-Reconnaissant"}, {n: "Al-Ali", t: "Le Très-Haut"}, {n: "Al-Kabir", t: "Le Très-Grand"}, {n: "Al-Hafiz", t: "Le Gardien"}, {n: "Al-Muqit", t: "Le Nourricier"},
+            {n: "Al-Hasib", t: "Celui qui tient compte"}, {n: "Al-Jalil", t: "Le Majestueux"}, {n: "Al-Karim", t: "Le Tout-Généreux"}, {n: "Ar-Raqib", t: "L'Observateur"}, {n: "Al-Mujib", t: "Celui qui exauce"},
+            {n: "Al-Wasi", t: "Le Vaste"}, {n: "Al-Hakim", t: "Le Sage"}, {n: "Al-Wadud", t: "Le Tout-Affectueux"}, {n: "Al-Majid", t: "Le Tout-Glorieux"}, {n: "Al-Ba'ith", t: "Celui qui ressuscite"},
+            {n: "Ash-Shahid", t: "Le Témoin"}, {n: "Al-Haqq", t: "Le Vrai"}, {n: "Al-Wakil", t: "Le Gérant"}, {n: "Al-Qawiyy", t: "Le Fort"}, {n: "Al-Matin", t: "Le Robuste"},
+            {n: "Al-Waliyy", t: "Le Protecteur"}, {n: "Al-Hamid", t: "Le Digne de Louange"}, {n: "Al-Muhsi", t: "Celui qui dénombre"}, {n: "Al-Mubdi", t: "L'Auteur"}, {n: "Al-Mu'id", t: "Celui qui redonne vie"},
+            {n: "Al-Muhyi", t: "Celui qui fait vivre"}, {n: "Al-Mumit", t: "Celui qui fait mourir"}, {n: "Al-Hayy", t: "Le Vivant"}, {n: "Al-Qayyum", t: "Le Subsistant par lui-même"}, {n: "Al-Wajid", t: "L'Opulent"},
+            {n: "Al-Majid", t: "Le Noble"}, {n: "Al-Wahid", t: "L'Unique"}, {n: "As-Samad", t: "Le Soutien Universel"}, {n: "Al-Qadir", t: "Le Puissant"}, {n: "Al-Muqtadir", t: "Le Détenteur du Pouvoir"},
+            {n: "Al-Muqaddim", t: "Celui qui met en avant"}, {n: "Al-Mu'akhkhir", t: "Celui qui met en arrière"}, {n: "Al-Awwal", t: "Le Premier"}, {n: "Al-Akhir", t: "Le Dernier"}, {n: "Az-Zahir", t: "L'Apparent"},
+            {n: "Al-Batin", t: "Le Caché"}, {n: "Al-Wali", t: "Le Maître"}, {n: "Al-Muta'ali", t: "Le Sublime"}, {n: "Al-Barr", t: "Le Bienfaisant"}, {n: "At-Tawwab", t: "L'Accueillant au repentir"},
+            {n: "Al-Muntaqim", t: "Le Vengeur"}, {n: "Al-Afuww", t: "L'Indulgent"}, {n: "Ar-Ra'uf", t: "Le Bienveillant"}, {n: "Malik-ul-Mulk", t: "Le Maître de la Royauté"}, {n: "Dhul-Jalal-wal-Ikram", t: "Le Détenteur de la Majesté"},
+            {n: "Al-Muqsit", t: "L'Équitable"}, {n: "Al-Jami", t: "Le Rassembleur"}, {n: "Al-Ghani", t: "Le Riche"}, {n: "Al-Mughni", t: "Celui qui enrichit"}, {n: "Al-Mani", t: "Le Défenseur"},
+            {n: "Ad-Darr", t: "Celui qui peut nuire"}, {n: "An-Nafi", t: "L'Utile"}, {n: "An-Nur", t: "La Lumière"}, {n: "Al-Hadi", t: "Le Guide"}, {n: "Al-Badi", t: "L'Inventeur"},
+            {n: "Al-Baqi", t: "Le Permanent"}, {n: "Al-Warith", t: "L'Héritier"}, {n: "Ar-Rashid", t: "Le Droit"}, {n: "As-Sabur", t: "Le Patient"}
+        ];
 
-        const COMMON_GOALS_LIST = [{id:'quran',text:'Lire au moins 2 pages du Coran',icon:'book-open'},{id:'solidary',text:'Action solidaire (sourire, aide, don...)',icon:'heart'},{id:'self',text:'Action pour soi (Tahajjud, Sunna...)',icon:'star'},{id:'arabic_word',text:'Apprendre un mot du Coran en arabe',icon:'languages'},{id:'positive',text:'Envoyer de la force au groupe',icon:'send'}];
+        const COMMON_GOALS_LIST = [
+            { id: 'quran', text: 'Lire au moins 2 pages du Coran', icon: 'book-open' },
+            { id: 'solidary', text: 'Action solidaire (sourire, aide, don...)', icon: 'heart' },
+            { id: 'self', text: 'Action pour soi (Tahajjud, Sunna...)', icon: 'star' },
+            { id: 'arabic_word', text: 'Apprendre un mot du Coran en arabe', icon: 'languages' },
+            { id: 'positive', text: 'Envoyer de la force au groupe', icon: 'send' }
+        ];
 
-        const spiritualLibrary = {'triste':[{text:"Ne t'afflige pas, car Allah est avec nous.",ref:"9:40"},{text:"Certes, après la difficulté vient la facilité.",ref:"94:5"}],'anxieuse':[{text:"N'est-ce pas par l'évocation d'Allah que les cœurs s'apaisent ?",ref:"13:28"},{text:"Allah ne charge aucune âme au-delà de sa capacité.",ref:"2:286"}],'fatiguee':[{text:"Et cherchez secours dans l'endurance et la prière.",ref:"2:45"},{text:"Le jeûne est pour Moi, et c'est Moi qui en donne la récompense.",ref:"Hadith Qudsi"}],'reconnaissante':[{text:"Si vous êtes reconnaissants, J'augmenterai Mes bienfaits.",ref:"14:7"},{text:"Lequel des bienfaits de votre Seigneur nierez-vous ?",ref:"55:13"}],'motivee':[{text:"Faites le bien ! Car Allah aime les bienfaisants.",ref:"2:195"},{text:"Les meilleures actions sont les plus régulières.",ref:"Bukhari"}],'istighfar':[{text:"Dis : Ô Mes serviteurs... ne désespérez pas de la miséricorde d'Allah.",ref:"39:53"},{text:"Et demandez pardon à votre Seigneur, ensuite, revenez à Lui.",ref:"11:90"}]};
+        const spiritualLibrary = {
+            'triste': [{ text: "Ne t'afflige pas, car Allah est avec nous.", ref: "9:40" }, { text: "Certes, après la difficulté vient la facilité.", ref: "94:5" }, { text: "Et sois patient. Certes Allah ne laisse pas perdre la récompense des gens de bien.", ref: "11:115" }, { text: "Allah ne charge aucune âme au-delà de sa capacité.", ref: "2:286" }],
+            'anxieuse': [{ text: "N'est-ce pas par l'évocation d'Allah que les cœurs s'apaisent ?", ref: "13:28" }, { text: "Et place ta confiance en le Vivant qui ne meurt jamais.", ref: "25:58" }, { text: "Il est avec vous où que vous soyez.", ref: "57:4" }, { text: "Et Nous sommes plus près de lui que sa veine jugulaire.", ref: "50:16" }],
+            'fatiguee': [{ text: "Et cherchez secours dans l'endurance et la prière.", ref: "2:45" }, { text: "Le jeûne est pour Moi, et c'est Moi qui en donne la récompense.", ref: "Hadith Qudsi" }, { text: "Ô vous qui avez cru ! Cherchez secours dans l'endurance et la Salât.", ref: "2:153" }, { text: "La récompense est à la mesure de l'épreuve.", ref: "Hadith" }],
+            'reconnaissante': [{ text: "Si vous êtes reconnaissants, J'augmenterai Mes bienfaits.", ref: "14:7" }, { text: "Lequel des bienfaits de votre Seigneur nierez-vous ?", ref: "55:13" }, { text: "Tout bienfait qui vous atteint vient d'Allah.", ref: "16:53" }, { text: "Et Allah aimera les reconnaissants.", ref: "3:144" }],
+            'motivee': [{ text: "Faites le bien ! Car Allah aime les bienfaisants.", ref: "2:195" }, { text: "Les meilleures actions sont les plus régulières.", ref: "Bukhari" }, { text: "Concurrencez-vous dans les bonnes œuvres.", ref: "5:48" }, { text: "Hâtez-vous vers le pardon de votre Seigneur.", ref: "3:133" }],
+            'istighfar': [{ text: "Dis : Ô Mes serviteurs qui avez commis des excès à votre propre détriment, ne désespérez pas de la miséricorde d'Allah.", ref: "39:53" }, { text: "Et demandez pardon à votre Seigneur, ensuite, revenez à Lui.", ref: "11:90" }, { text: "Votre Seigneur s'est prescrit à Lui-même la miséricorde.", ref: "6:54" }, { text: "Quiconque agit mal ou se fait du tort à lui-même, puis implore le pardon d'Allah, trouvera Allah Pardonneur et Miséricordieux.", ref: "4:110" }]
+        };
 
-        const CATEGORIZED_QUIZ = {'prophetes':[{q:"Quel prophète a construit l'Arche ?",a:["Ibrahim","Moussa","Nouh"],c:2}],'ramadan':[{q:"Mois du jeûne ?",a:["Ramadan","Chawwal","Safar"],c:0}],'coran':[{q:"Coeur du Coran ?",a:["Yassine","Fatiha","Moulk"],c:0}],'islam':[{q:"Piliers de l'Islam ?",a:["5","6","4"],c:0}]};
+        const CATEGORIZED_QUIZ = {
+            'prophetes': [
+                { q: "Quel prophète a construit l'Arche ?", a: ["Ibrahim", "Moussa", "Nouh"], c: 2 },
+                { q: "Quel prophète a été jeté dans un puits ?", a: ["Youssef", "Ismaïl", "Ishak"], c: 0 },
+                { q: "Quel prophète a parlé aux animaux ?", a: ["Suleyman", "Daoud", "Youssef"], c: 0 },
+                { q: "Quel prophète a reçu l'Injil ?", a: ["Moussa", "Issa", "Ibrahim"], c: 1 },
+                { q: "Quel prophète est resté patient durant sa maladie ?", a: ["Ayoub", "Nouh", "Lout"], c: 0 },
+                { q: "Quel prophète a fendu la mer ?", a: ["Moussa", "Haroun", "Yousha"], c: 0 },
+                { q: "Quel prophète a parlé au berceau ?", a: ["Issa", "Yahya", "Moussa"], c: 0 },
+                { q: "Quel prophète a survécu au feu ?", a: ["Ibrahim", "Adam", "Ishak"], c: 0 },
+                { q: "Qui est le père de Youssef ?", a: ["Ya'qub", "Ibrahim", "Nouh"], c: 0 },
+                { q: "Quel prophète a construit la Kaaba ?", a: ["Ibrahim", "Adam", "Nouh"], c: 0 },
+                { q: "Quel prophète a eu 12 fils ?", a: ["Ya'qub", "Ibrahim", "Ishak"], c: 0 },
+                { q: "Quel prophète a été avalé par un poisson ?", a: ["Younous", "Ayoub", "Houd"], c: 0 },
+                { q: "Quel prophète a été envoyé à Thamud ?", a: ["Salih", "Houd", "Lout"], c: 0 },
+                { q: "Quel prophète a reçu le Zabur ?", a: ["Daoud", "Suleyman", "Moussa"], c: 0 },
+                { q: "Quel prophète a été créé sans père ?", a: ["Issa", "Yahya", "Adam"], c: 0 },
+                { q: "Quel est le premier prophète ?", a: ["Adam", "Nouh", "Idriss"], c: 0 },
+                { q: "Quel prophète est le 'Khalil' (Ami intime) d'Allah ?", a: ["Ibrahim", "Moussa", "Issa"], c: 0 },
+                { q: "Quel prophète a combattu Goliath (Jalut) ?", a: ["Daoud", "Suleyman", "Talut"], c: 0 },
+                { q: "Le prophète Muhammad (sws) est mort à quel âge ?", a: ["63 ans", "60 ans", "65 ans"], c: 0 },
+                { q: "Quel prophète a demandé à voir Allah ?", a: ["Moussa", "Ibrahim", "Issa"], c: 0 },
+                { q: "Quel prophète a été élevé au ciel ?", a: ["Idriss", "Younous", "Lout"], c: 0 },
+                { q: "Qui a accompagné le Prophète (sws) dans la grotte ?", a: ["Abou Bakr", "Omar", "Ali"], c: 0 },
+                { q: "Quel prophète avait le plus beau visage ?", a: ["Youssef", "Moussa", "Haroun"], c: 0 },
+                { q: "Quel prophète ne s'est jamais marié ?", a: ["Yahya", "Moussa", "Ibrahim"], c: 0 },
+                { q: "Qui est le prophète des Ad ?", a: ["Houd", "Salih", "Chouayb"], c: 0 }
+            ],
+            'ramadan': [
+                { q: "En quelle année le jeûne a-t-il été instauré ?", a: ["An 1", "An 2", "An 3"], c: 1 },
+                { q: "L'aumône de fin de Ramadan ?", a: ["Zakat al-Maal", "Zakat al-Fitr", "Sadaqa"], c: 1 },
+                { q: "Porte du Paradis des jeûneurs ?", a: ["Ar-Rayyan", "Al-Kawthar", "Al-Firdaws"], c: 0 },
+                { q: "Nom de la nuit de la valeur ?", a: ["Laylat al-Qadr", "Laylat al-Mi'raj", "Achoura"], c: 0 },
+                { q: "Sens de 'Ramadan' ?", a: ["Chaleur intense", "Pardon", "Mois sacré"], c: 0 },
+                { q: "Fruit recommandé pour l'Iftar ?", a: ["Figue", "Datte", "Pomme"], c: 1 },
+                { q: "Bataille du 17 Ramadan ?", a: ["Badr", "Ouhoud", "Khandaq"], c: 0 },
+                { q: "Combien de jours compte Ramadan ?", a: ["29-30", "30-31", "28-29"], c: 0 },
+                { q: "Sourate mentionnant le Ramadan ?", a: ["Al-Baqarah", "Al-Fatiha", "An-Nisa"], c: 0 },
+                { q: "Repas avant l'aube ?", a: ["Suhoor", "Iftar", "Fajr"], c: 0 },
+                { q: "Manger par oubli rompt-il le jeûne ?", a: ["Non", "Oui", "Seulement si beaucoup"], c: 0 },
+                { q: "Laylat al-Qadr vaut plus que... ?", a: ["1000 mois", "1000 ans", "100 ans"], c: 0 },
+                { q: "Que signifie Iftar ?", a: ["Rupture", "Déjeuner", "Dîner"], c: 0 },
+                { q: "Quel acte est Sunna à l'Iftar ?", a: ["Se hâter de rompre", "Retarder la rupture", "Dormir avant"], c: 0 },
+                { q: "Quelle prière spéciale pendant Ramadan ?", a: ["Tarawih", "Duha", "Istikhara"], c: 0 },
+                { q: "Quand faire l'intention de jeûner ?", a: ["Avant l'aube (Fajr)", "À midi", "Au coucher du soleil"], c: 0 },
+                { q: "Le jeûne des 6 jours après Ramadan ?", a: ["Chawwal", "Safar", "Muharram"], c: 0 },
+                { q: "Qui est exempté de jeûne ?", a: ["Le voyageur", "L'étudiant", "Le travailleur"], c: 0 },
+                { q: "Peut-on utiliser le Siwak en jeûnant ?", a: ["Oui", "Non", "Déconseillé"], c: 0 },
+                { q: "Le vomissement involontaire annule-t-il ?", a: ["Non", "Oui", "Ça dépend"], c: 0 }
+            ],
+            'coran': [
+                { q: "Combien de Juz dans le Coran ?", a: ["20", "30", "40"], c: 1 },
+                { q: "Cœur du Coran ?", a: ["Yassine", "Ar-Rahman", "Al-Moulk"], c: 0 },
+                { q: "Fois nom Muhammad cité ?", a: ["4 fois", "25 fois", "114 fois"], c: 0 },
+                { q: "Sourate sans Basmala ?", a: ["At-Tawbah", "Al-Anfal", "An-Naml"], c: 0 },
+                { q: "Plus longue sourate ?", a: ["Al-Baqarah", "Al-Imran", "An-Nisa"], c: 0 },
+                { q: "Combien de sourates ?", a: ["114", "110", "120"], c: 0 },
+                { q: "Plus courte sourate ?", a: ["Al-Kawthar", "Al-Asr", "Al-Ikhlas"], c: 0 },
+                { q: "Lieu du 1er verset ?", a: ["Grotte de Hira", "Kaaba", "Médine"], c: 0 },
+                { q: "Sourate protégeant de la tombe ?", a: ["Al-Moulk", "Al-Kahf", "Al-Waqi'a"], c: 0 },
+                { q: "Sourate valant 1/3 du Coran ?", a: ["Al-Ikhlas", "Al-Fatiha", "Al-Kawthar"], c: 0 },
+                { q: "Quelle sourate a 2 Basmalas ?", a: ["An-Naml", "At-Tawbah", "Yasin"], c: 0 },
+                { q: "La Mère du Livre ?", a: ["Al-Fatiha", "Al-Baqarah", "Yasin"], c: 0 },
+                { q: "Combien de Sajdah (prosternations) ?", a: ["15", "10", "20"], c: 0 },
+                { q: "Dernière sourate révélée en entier ?", a: ["An-Nasr", "Al-Fatiha", "Al-Baqarah"], c: 0 },
+                { q: "Quel compagnon est cité par son nom ?", a: ["Zayd", "Ali", "Omar"], c: 0 },
+                { q: "Sourate contre le Dajjal ?", a: ["Al-Kahf", "Yasin", "Al-Moulk"], c: 0 },
+                { q: "Sourate nommée 'Les femmes' ?", a: ["An-Nisa", "Maryam", "Al-Mujadila"], c: 0 },
+                { q: "Le verset du Trône ?", a: ["Ayat al-Kursi", "Ayat an-Nur", "Ayat ad-Dayn"], c: 0 },
+                { q: "Combien d'années de révélation à la Mecque ?", a: ["13 ans", "10 ans", "23 ans"], c: 0 },
+                { q: "Première sourate complète révélée ?", a: ["Al-Fatiha", "Al-Alaq", "Al-Muddathir"], c: 0 }
+            ],
+            'islam': [
+                { q: "Le Sabre d'Allah ?", a: ["Khalid ibn al-Walid", "Ali", "Omar"], c: 0 },
+                { q: "Premier Muezzin ?", a: ["Bilal", "Abou Bakr", "Omar"], c: 0 },
+                { q: "Successeur d'Abou Bakr ?", a: ["Omar", "Othman", "Ali"], c: 0 },
+                { q: "Ville de la Kaaba ?", a: ["La Mecque", "Médine", "Jérusalem"], c: 0 },
+                { q: "Piliers de l'Islam ?", a: ["5", "6", "7"], c: 0 },
+                { q: "Piliers de la Foi ?", a: ["6", "5", "7"], c: 0 },
+                { q: "1er mois hégirien ?", a: ["Mouharram", "Ramadan", "Safar"], c: 0 },
+                { q: "Nom de l'émigration ?", a: ["Hégire", "Isra", "Mi'raj"], c: 0 },
+                { q: "Direction prière ?", a: ["Qibla", "Est", "Nord"], c: 0 },
+                { q: "Mosquée en Palestine ?", a: ["Al-Aqsa", "Quba", "Al-Haram"], c: 0 },
+                { q: "Ange de la révélation ?", a: ["Jibril", "Mikail", "Israfil"], c: 0 },
+                { q: "Ange de la mort ?", a: ["Azraël", "Malik", "Ridwan"], c: 0 },
+                { q: "Gardien de l'Enfer ?", a: ["Malik", "Ridwan", "Munkar"], c: 0 },
+                { q: "Femme de Pharaon croyante ?", a: ["Asiya", "Maryam", "Khadija"], c: 0 },
+                { q: "Première femme martyre ?", a: ["Sumayyah", "Khadija", "Aicha"], c: 0 },
+                { q: "La prière mortuaire a-t-elle des inclinaisons ?", a: ["Non", "Oui", "Parfois"], c: 0 },
+                { q: "L'ablution avec de la terre ?", a: ["Tayammum", "Ghusl", "Wudu"], c: 0 },
+                { q: "Combien de Takbirs dans la prière de l'Aïd ?", a: ["7 et 5", "3 et 3", "4 et 4"], c: 0 },
+                { q: "Année de l'Éléphant ?", a: ["Naissance du Prophète", "Hégire", "Mort du Prophète"], c: 0 },
+                { q: "Qui a dormi dans le lit du Prophète lors de l'Hégire ?", a: ["Ali", "Abou Bakr", "Othman"], c: 0 }
+            ]
+        };
 
         async function initApp() {
             try {
@@ -96,7 +238,13 @@
                 let total = 0;
                 snap.forEach(doc => {
                     const d = doc.data();
-                    if(d) Object.values(d).forEach(day => { if(day.dhikr) total += (day.dhikr.sub || 0) + (day.dhikr.alh || 0) + (day.dhikr.ast || 0) + (day.dhikr.akb || 0); });
+                    if(d) {
+                        Object.values(d).forEach(day => {
+                            if(day && day.dhikr) {
+                                total += (day.dhikr.sub || 0) + (day.dhikr.alh || 0) + (day.dhikr.ast || 0) + (day.dhikr.akb || 0);
+                            }
+                        });
+                    }
                 });
                 globalDhikrCount = total;
                 const el = document.getElementById('global-dhikr-count');
@@ -108,10 +256,28 @@
             });
         }
 
-        window.enterSalonRoom = (room) => { salonViewMode = 'room'; activeSalonRoom = room; renderSalonContent(); };
-        window.backToSalonMenu = () => { salonViewMode = 'menu'; activeSalonRoom = ''; renderSalonContent(); };
-        window.deleteSalonItem = async (collectionName, id) => { if(!confirm("Supprimer ?")) return; await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', collectionName, id)); };
-        window.resetNameExpl = async (uid) => { if(!confirm("Modifier ?")) return; const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'salon_names', `day_${activeDayIdx}`); await setDoc(docRef, { [uid]: null }, { merge: true }); };
+        window.enterSalonRoom = (room) => {
+            salonViewMode = 'room';
+            activeSalonRoom = room;
+            renderSalonContent();
+        };
+
+        window.backToSalonMenu = () => {
+            salonViewMode = 'menu';
+            activeSalonRoom = '';
+            renderSalonContent();
+        };
+
+        window.deleteSalonItem = async (collectionName, id) => {
+            if(!confirm("Veux-tu vraiment supprimer ce message ?")) return;
+            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', collectionName, id));
+        };
+
+        window.resetNameExpl = async (uid) => {
+            if(!confirm("Veux-tu modifier/supprimer ton explication ?")) return;
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'salon_names', `day_${activeDayIdx}`);
+            await setDoc(docRef, { [uid]: null }, { merge: true });
+        };
 
         window.renderSalonContent = () => {
             const container = document.getElementById('salon-content-area');
@@ -141,404 +307,769 @@
                 <div class="mt-8 bg-white p-6 rounded-[2.5rem] border border-slate-50 shadow-sm text-center">
                     <h3 class="text-xs font-black text-slate-400 uppercase tracking-[0.2em] mb-4">Objectifs Communs</h3>
                     <div id="common-goals-container-salon" class="space-y-2"></div>
-                </div>`;
+                </div>
+                `;
+                
                 const goalsContainer = document.getElementById('common-goals-container-salon');
                 if(goalsContainer) {
                     const dayData = commonGoalsData[`day_${activeDayIdx}`] || {};
                     goalsContainer.innerHTML = COMMON_GOALS_LIST.map(goal => {
                         let count = 0; USERS.forEach(u => { if(dayData[u.id] && dayData[u.id][goal.id]) count++; });
                         const amI = dayData[currentUser?.id] && dayData[currentUser?.id][goal.id];
-                        return `<div class="bg-slate-50 p-3 rounded-2xl flex items-center justify-between"><div class="flex items-center gap-2"><button onclick="window.toggleCommonGoal('${goal.id}')" class="w-6 h-6 rounded-lg flex items-center justify-center border transition-all ${amI ? 'bg-rose-500 border-rose-500 text-white' : 'bg-white border-slate-200'}">${amI ? '<i data-lucide="check" class="w-3 h-3"></i>' : ''}</button><span class="text-[10px] font-bold text-slate-600">${goal.text}</span></div><span class="text-[8px] font-black text-rose-300">${count}/4</span></div>`;
+                        return `<div class="bg-slate-50 p-3 rounded-2xl flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <button onclick="window.toggleCommonGoal('${goal.id}')" class="w-6 h-6 rounded-lg flex items-center justify-center border transition-all ${amI ? 'bg-rose-500 border-rose-500 text-white' : 'bg-white border-slate-200'}">${amI ? '<i data-lucide="check" class="w-3 h-3"></i>' : ''}</button>
+                                <span class="text-[10px] font-bold text-slate-600">${goal.text}</span>
+                            </div>
+                            <span class="text-[8px] font-black text-rose-300">${count}/4</span>
+                        </div>`;
                     }).join('');
                 }
             } else {
-                let headerColor = 'text-slate-800'; let title = '';
+                let headerColor = 'text-slate-800';
+                let title = '';
                 if(activeSalonRoom === 'papotage') { title = 'Papotage 💬'; headerColor = 'text-rose-500'; }
                 if(activeSalonRoom === 'gratitude') { title = 'Gratitude ✨'; headerColor = 'text-emerald-500'; }
                 if(activeSalonRoom === 'duas') { title = 'Cercle de Duas 🤲'; headerColor = 'text-indigo-500'; }
                 if(activeSalonRoom === 'noms') { title = 'Noms d\'Allah 📚'; headerColor = 'text-amber-500'; }
 
-                let html = `<div class="flex items-center gap-4 mb-4 px-2"><button onclick="window.backToSalonMenu()" class="bg-white p-2 rounded-xl border border-slate-100 text-slate-400 shadow-sm active:scale-95"><i data-lucide="arrow-left" class="w-5 h-5"></i></button><h3 class="text-lg font-black ${headerColor} italic">${title}</h3></div>`;
+                let html = `
+                <div class="flex items-center gap-4 mb-4 px-2">
+                    <button onclick="window.backToSalonMenu()" class="bg-white p-2 rounded-xl border border-slate-100 text-slate-400 shadow-sm active:scale-95"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
+                    <h3 class="text-lg font-black ${headerColor} italic">${title}</h3>
+                </div>
+                `;
 
                 if (activeSalonRoom === 'papotage') {
                     html += `<div class="flex flex-col gap-4 pb-20">`;
                     html += sharedMessages.map(m => {
                         const isMe = m.authorId === currentUser?.id;
-                        return `<div class="flex flex-col ${isMe ? 'items-end' : 'items-start'} animate-in slide-in-from-bottom-2"><span class="text-[8px] font-black uppercase text-slate-400 mb-1 px-2">${m.authorName}</span><div class="${isMe ? 'bg-rose-500 text-white rounded-l-2xl rounded-br-2xl shadow-sm' : 'bg-white text-slate-700 rounded-r-2xl rounded-bl-2xl shadow-xs border border-slate-100'} p-3 max-w-[85%]"><p class="text-xs font-medium leading-relaxed">${m.text}</p></div></div>`;
+                        return `<div class="flex flex-col ${isMe ? 'items-end' : 'items-start'} animate-in slide-in-from-bottom-2">
+                            <span class="text-[8px] font-black uppercase text-slate-400 mb-1 px-2">${m.authorName}</span>
+                            <div class="${isMe ? 'bg-rose-500 text-white rounded-l-2xl rounded-br-2xl shadow-sm' : 'bg-white text-slate-700 rounded-r-2xl rounded-bl-2xl shadow-xs border border-slate-100'} p-3 max-w-[85%]">
+                                <p class="text-xs font-medium leading-relaxed">${m.text}</p>
+                            </div>
+                        </div>`;
                     }).join('');
-                    html += `</div><div class="fixed bottom-[90px] left-4 right-4 flex gap-2"><input type="text" id="papotage-input" placeholder="Discussion..." class="flex-1 bg-white border border-rose-100 rounded-xl px-5 py-4 text-xs outline-none shadow-lg"><button onclick="window.sendPapotage()" class="bg-rose-500 text-white p-4 rounded-xl shadow-lg active:scale-95 transition"><i data-lucide="send" class="w-5 h-5"></i></button></div>`;
-                } else if (activeSalonRoom === 'gratitude') {
-                    html += `<div class="mb-6 bg-white p-4 rounded-[2rem] border border-rose-100 shadow-sm text-center"><p class="text-xs font-bold text-slate-600 mb-2">Partage ton bonheur ✨</p><div class="flex items-center gap-2 bg-slate-50 rounded-xl px-3 py-2 border border-slate-100"><span class="text-[10px] font-black text-emerald-500 uppercase whitespace-nowrap">Alhamdulillah pour</span><input type="text" id="gratitude-input" placeholder="..." class="flex-1 bg-transparent text-xs outline-none text-slate-700 font-medium"><button onclick="window.sendGratitude()" class="bg-emerald-500 text-white w-8 h-8 rounded-lg flex items-center justify-center shadow-sm hover:scale-105 transition"><i data-lucide="plus" class="w-4 h-4"></i></button></div></div><div class="space-y-3 pb-24">`;
+                    html += `</div>
+                    <div class="fixed bottom-[90px] left-4 right-4 flex gap-2">
+                        <input type="text" id="papotage-input" placeholder="Discussion..." class="flex-1 bg-white border border-rose-100 rounded-xl px-5 py-4 text-xs outline-none shadow-lg">
+                        <button onclick="window.sendPapotage()" class="bg-rose-500 text-white p-4 rounded-xl shadow-lg active:scale-95 transition"><i data-lucide="send" class="w-5 h-5"></i></button>
+                    </div>`;
+                }
+                else if (activeSalonRoom === 'gratitude') {
+                    html += `<div class="mb-6 bg-white p-4 rounded-[2rem] border border-rose-100 shadow-sm text-center">
+                        <p class="text-xs font-bold text-slate-600 mb-2">Partage ton bonheur ✨</p>
+                        <div class="flex items-center gap-2 bg-slate-50 rounded-xl px-3 py-2 border border-slate-100">
+                            <span class="text-[10px] font-black text-emerald-500 uppercase whitespace-nowrap">Alhamdulillah pour</span>
+                            <input type="text" id="gratitude-input" placeholder="..." class="flex-1 bg-transparent text-xs outline-none text-slate-700 font-medium">
+                            <button onclick="window.sendGratitude()" class="bg-emerald-500 text-white w-8 h-8 rounded-lg flex items-center justify-center shadow-sm hover:scale-105 transition"><i data-lucide="plus" class="w-4 h-4"></i></button>
+                        </div>
+                    </div>
+                    <div class="space-y-3 pb-24">`;
                     html += gratitudeMessages.map(g => {
                         const isMe = g.authorId === currentUser?.id;
-                        return `<div class="bg-white p-4 rounded-2xl border-l-4 border-emerald-400 shadow-sm flex flex-col items-start gap-1 animate-in zoom-in duration-300 relative group"><div class="flex justify-between w-full"><span class="text-[9px] font-black uppercase text-emerald-500 bg-emerald-50 px-2 py-1 rounded-md">Alhamdulillah</span><div class="flex gap-2"><span class="text-[8px] text-slate-300 font-bold">${g.authorName}</span>${isMe ? `<button onclick="window.deleteSalonItem('salon_gratitude', '${g.id}')" class="text-rose-300"><i data-lucide="trash-2" class="w-3 h-3"></i></button>` : ''}</div></div><p class="text-xs font-medium text-slate-700 italic">"${g.text.startsWith('Alhamdulillah pour ') ? g.text.replace('Alhamdulillah pour ', '') : g.text}"</p></div>`;
-                    }).join('');
+                        return `
+                        <div class="bg-white p-4 rounded-2xl border-l-4 border-emerald-400 shadow-sm flex flex-col items-start gap-1 animate-in zoom-in duration-300 relative group">
+                            <div class="flex justify-between w-full">
+                                <span class="text-[9px] font-black uppercase text-emerald-500 bg-emerald-50 px-2 py-1 rounded-md">Alhamdulillah</span>
+                                <div class="flex gap-2">
+                                    <span class="text-[8px] text-slate-300 font-bold">${g.authorName}</span>
+                                    ${isMe ? `<button onclick="window.deleteSalonItem('salon_gratitude', '${g.id}')" class="text-rose-300"><i data-lucide="trash-2" class="w-3 h-3"></i></button>` : ''}
+                                </div>
+                            </div>
+                            <p class="text-xs font-medium text-slate-700 italic">"${g.text}"</p>
+                        </div>
+                    `}).join('');
                     html += `</div>`;
-                } else if (activeSalonRoom === 'duas') {
-                    html += `<div class="mb-6 bg-gradient-to-r from-rose-50 to-indigo-50 p-6 rounded-[2rem] border border-white shadow-sm text-center relative overflow-hidden"><div class="absolute -top-2 -right-2 text-4xl opacity-20">🤲</div><p class="text-xs font-bold text-slate-600 mb-2 italic">"Invoquez-Moi, Je vous exaucerai" 💖</p><div class="flex gap-2 relative z-10"><input type="text" id="dua-input" placeholder="Une dua importante pour moi..." class="flex-1 bg-white rounded-xl px-4 py-3 text-xs outline-none shadow-sm"><button onclick="window.sendDua()" class="bg-indigo-400 text-white p-3 rounded-xl shadow-md"><i data-lucide="send" class="w-4 h-4"></i></button></div></div><div class="space-y-4 pb-24">`;
+                }
+                else if (activeSalonRoom === 'duas') {
+                    html += `<div class="mb-6 bg-gradient-to-r from-rose-50 to-indigo-50 p-6 rounded-[2rem] border border-white shadow-sm text-center relative overflow-hidden">
+                        <div class="absolute -top-2 -right-2 text-4xl opacity-20">🤲</div>
+                        <p class="text-xs font-bold text-slate-600 mb-2 italic">"Invoquez-Moi, Je vous exaucerai" 💖</p>
+                        <div class="flex gap-2 relative z-10">
+                            <input type="text" id="dua-input" placeholder="Une dua importante pour moi..." class="flex-1 bg-white rounded-xl px-4 py-3 text-xs outline-none shadow-sm">
+                            <button onclick="window.sendDua()" class="bg-indigo-400 text-white p-3 rounded-xl shadow-md"><i data-lucide="send" class="w-4 h-4"></i></button>
+                        </div>
+                    </div>
+                    <div class="space-y-4 pb-24">`;
                     html += duasList.map(d => {
                         const hasPrayed = d.prayers && d.prayers.includes(currentUser?.id);
                         const isMe = d.authorId === currentUser?.id;
                         const count = d.prayers ? d.prayers.length : 0;
-                        return `<div class="bg-white p-5 rounded-[2rem] border border-indigo-50 shadow-sm relative animate-in slide-in-from-bottom-3"><div class="flex justify-between items-start mb-2"><span class="text-[8px] font-black text-slate-300 uppercase flex items-center gap-1">${d.authorName} 🌸</span>${isMe ? `<button onclick="window.deleteSalonItem('salon_duas', '${d.id}')" class="text-rose-300"><i data-lucide="trash-2" class="w-3 h-3"></i></button>` : ''}</div><div class="mb-4 pr-6"><p class="text-xs text-slate-700 leading-relaxed font-medium">"${d.text}"</p></div><div class="flex items-center justify-between border-t border-slate-50 pt-3"><button onclick="window.prayFor('${d.id}')" class="flex items-center gap-2 px-4 py-2 rounded-full text-[9px] font-black uppercase transition-all ${hasPrayed ? 'bg-rose-100 text-rose-500' : 'bg-slate-50 text-slate-400'}"><i data-lucide="heart" class="w-3 h-3 ${hasPrayed ? 'fill-current' : ''}"></i> ${hasPrayed ? 'Doua faite ✨' : 'Je prie pour toi'}</button><span class="text-[9px] font-bold text-indigo-300 flex items-center gap-1"><i data-lucide="users" class="w-3 h-3"></i> ${count}</span></div></div>`;
+                        return `
+                        <div class="bg-white p-5 rounded-[2rem] border border-indigo-50 shadow-sm relative animate-in slide-in-from-bottom-3">
+                            <div class="flex justify-between items-start mb-2">
+                                <span class="text-[8px] font-black text-slate-300 uppercase flex items-center gap-1">${d.authorName} 🌸</span>
+                                ${isMe ? `<button onclick="window.deleteSalonItem('salon_duas', '${d.id}')" class="text-rose-300"><i data-lucide="trash-2" class="w-3 h-3"></i></button>` : ''}
+                            </div>
+                            <div class="mb-4 pr-6"><p class="text-xs text-slate-700 leading-relaxed font-medium">"${d.text}"</p></div>
+                            <div class="flex items-center justify-between border-t border-slate-50 pt-3">
+                                <button onclick="window.prayFor('${d.id}')" class="flex items-center gap-2 px-4 py-2 rounded-full text-[9px] font-black uppercase transition-all ${hasPrayed ? 'bg-rose-100 text-rose-500' : 'bg-slate-50 text-slate-400'}">
+                                    <i data-lucide="heart" class="w-3 h-3 ${hasPrayed ? 'fill-current' : ''}"></i> ${hasPrayed ? 'Doua faite ✨' : 'Je prie pour toi'}
+                                </button>
+                                <span class="text-[9px] font-bold text-indigo-300 flex items-center gap-1"><i data-lucide="users" class="w-3 h-3"></i> ${count}</span>
+                            </div>
+                        </div>`;
                     }).join('');
                     html += `</div>`;
-                } else if (activeSalonRoom === 'noms') {
-                    const dayOffset = (activeDayIdx - 1) * 4;
+                }
+                else if (activeSalonRoom === 'noms') {
+                    const dayOffset = (activeDayIdx - 1) * 4; 
                     const dayData = namesExplanations[`day_${activeDayIdx}`] || {};
-                    html += `<div class="pb-24 space-y-6"><div class="bg-amber-100 p-4 rounded-3xl text-center shadow-sm border border-amber-200"><h3 class="text-sm font-black text-amber-800 uppercase tracking-widest">Cercle de Science 📚</h3><p class="text-[10px] text-amber-600 italic">4 Noms par jour, une chacune !</p></div><div class="space-y-6">`;
+                    html += `<div class="pb-24 space-y-6">`;
+                    html += `<div class="bg-amber-100 p-4 rounded-3xl text-center shadow-sm border border-amber-200"><h3 class="text-sm font-black text-amber-800 uppercase tracking-widest">Cercle de Science 📚</h3><p class="text-[10px] text-amber-600 italic">4 Noms par jour, une chacune !</p></div>`;
+                    html += `<div class="space-y-6">`;
                     USERS.forEach((u, i) => {
-                        const nameIdx = (dayOffset + i) % 99; const nameObj = ALLAH_NAMES[nameIdx % ALLAH_NAMES.length]; const userExpl = dayData[u.id]; const isMe = currentUser?.id === u.id;
-                        html += `<div class="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-50 relative overflow-hidden"><div class="absolute top-0 right-0 ${u.color.replace('text-', 'bg-').replace('100', '500')} w-16 h-16 rounded-bl-full opacity-10"></div><div class="flex justify-between items-start mb-4"><div><span class="text-[9px] font-black uppercase tracking-widest text-slate-300 block mb-1">Attribué à ${u.name}</span><h2 class="text-xl font-black text-slate-800">${nameObj.n}</h2><p class="text-xs italic text-slate-500">${nameObj.t}</p></div><div class="w-10 h-10 rounded-full ${u.color} flex items-center justify-center font-bold text-sm border-2 border-white shadow-sm">${u.name.charAt(0)}</div></div>${userExpl ? `<div class="bg-slate-50 p-4 rounded-2xl text-xs text-slate-700 leading-relaxed border border-slate-100 whitespace-pre-line">${userExpl.text}</div><div class="mt-2 flex justify-between items-center"><span class="text-[8px] font-bold text-emerald-500 uppercase tracking-widest">Validé ✨</span>${isMe ? `<button onclick="window.resetNameExpl('${u.id}')" class="text-[8px] font-bold text-amber-500 uppercase flex items-center gap-1 border border-amber-100 px-2 py-1 rounded-lg bg-amber-50"><i data-lucide="rotate-ccw" class="w-3 h-3"></i> Modifier</button>` : ''}</div>` : (isMe ? `<div class="mt-2"><p class="text-[10px] text-rose-500 font-bold mb-2 uppercase">C'est ton tour ! Que signifie ce nom ?</p><textarea id="name-expl-${u.id}" rows="4" placeholder="Partage ta science..." class="w-full bg-slate-50 rounded-2xl p-3 text-xs outline-none mb-2 border border-slate-100"></textarea><button onclick="window.submitNameExpl('${u.id}')" class="w-full bg-slate-900 text-white py-3 rounded-xl font-black text-[10px] uppercase shadow-md">Publier ma leçon</button></div>` : `<div class="bg-slate-50 p-4 rounded-2xl text-center border border-slate-100 border-dashed"><p class="text-[10px] text-slate-400 italic">En attente de ${u.name}...</p></div>`)}</div>`;
+                        const nameIdx = (dayOffset + i) % 99; 
+                        const nameObj = ALLAH_NAMES[nameIdx];
+                        const userExpl = dayData[u.id]; 
+                        const isMe = currentUser?.id === u.id;
+                        html += `
+                        <div class="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-50 relative overflow-hidden">
+                            <div class="absolute top-0 right-0 ${u.color.replace('text-', 'bg-').replace('100', '500')} w-16 h-16 rounded-bl-full opacity-10"></div>
+                            <div class="flex justify-between items-start mb-4">
+                                 <div>
+                                    <span class="text-[9px] font-black uppercase tracking-widest text-slate-300 block mb-1">Attribué à ${u.name}</span>
+                                    <h2 class="text-xl font-black text-slate-800">${nameObj.n}</h2>
+                                    <p class="text-xs italic text-slate-500">${nameObj.t}</p>
+                                 </div>
+                                 <div class="w-10 h-10 rounded-full ${u.color} flex items-center justify-center font-bold text-sm border-2 border-white shadow-sm">${u.name.charAt(0)}</div>
+                            </div>
+                            ${userExpl ? 
+                                `<div class="bg-slate-50 p-4 rounded-2xl text-xs text-slate-700 leading-relaxed border border-slate-100 whitespace-pre-line">${userExpl.text}</div>
+                                <div class="mt-2 flex justify-between items-center">
+                                    <span class="text-[8px] font-bold text-emerald-500 uppercase tracking-widest">Validé ✨</span>
+                                    ${isMe ? `<button onclick="window.resetNameExpl('${u.id}')" class="text-[8px] font-bold text-amber-500 uppercase flex items-center gap-1 border border-amber-100 px-2 py-1 rounded-lg bg-amber-50"><i data-lucide="rotate-ccw" class="w-3 h-3"></i> Modifier</button>` : ''}
+                                </div>`
+                                :
+                                (isMe ? 
+                                    `<div class="mt-2"><p class="text-[10px] text-rose-500 font-bold mb-2 uppercase">C'est ton tour ! Que signifie ce nom ?</p><textarea id="name-expl-${u.id}" rows="4" placeholder="Partage ta science..." class="w-full bg-slate-50 rounded-2xl p-3 text-xs outline-none mb-2 border border-slate-100"></textarea><button onclick="window.submitNameExpl('${u.id}')" class="w-full bg-slate-900 text-white py-3 rounded-xl font-black text-[10px] uppercase shadow-md">Publier ma leçon</button></div>`
+                                    :
+                                    `<div class="bg-slate-50 p-4 rounded-2xl text-center border border-slate-100 border-dashed"><p class="text-[10px] text-slate-400 italic">En attente de ${u.name}...</p></div>`
+                                )
+                            }
+                        </div>`;
                     });
                     html += `</div></div>`;
                 }
+
                 container.innerHTML = html;
                 if(activeSalonRoom === 'papotage') window.scrollTo(0, document.body.scrollHeight);
             }
+
             lucide.createIcons();
         };
 
-        window.sendPapotage = async () => { const i = document.getElementById('papotage-input'); const m = i.value.trim(); if(!m || !currentUser) return; await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'salon_messages'), { text: m, authorId: currentUser.id, authorName: currentUser.name, timestamp: Date.now() }); i.value = ""; setTimeout(() => window.scrollTo(0, document.body.scrollHeight), 300); };
-        window.sendGratitude = async () => { const i = document.getElementById('gratitude-input'); const m = i.value.trim(); if(!m) return; await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'salon_gratitude'), { text: "Alhamdulillah pour " + m, authorId: currentUser.id, authorName: currentUser.name, timestamp: Date.now() }); i.value = ""; };
-        window.sendDua = async () => { const i = document.getElementById('dua-input'); const m = i.value.trim(); if(!m) return; await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'salon_duas'), { text: m, authorId: currentUser.id, authorName: currentUser.name, timestamp: Date.now(), prayers: [] }); i.value = ""; };
-        window.prayFor = async (id) => { if(!currentUser) return; await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'salon_duas', id), { prayers: arrayUnion(currentUser.id) }); showToast("Amine 🤲"); };
-        window.submitNameExpl = async (uid) => { const t = document.getElementById(`name-expl-${uid}`).value.trim(); if(!t) return; await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'salon_names', `day_${activeDayIdx}`), { [uid]: { text: t, author: currentUser.name, timestamp: Date.now() } }, { merge: true }); showToast("Publié !"); };
-
-        window.addQuranReading = async () => {
-            const surah = document.getElementById('input-surah-new').value; const start = document.getElementById('input-quran-start').value; const end = document.getElementById('input-quran-end').value;
-            if(!surah || !start) { showToast("Remplis au moins la Sourate et le début !"); return; }
-            if(!userData[activeDayIdx].readingLogs) userData[activeDayIdx].readingLogs = [];
-            userData[activeDayIdx].readingLogs.push({ surah, start, end, timestamp: Date.now() });
-            document.getElementById('input-surah-new').value = ""; document.getElementById('input-quran-start').value = ""; document.getElementById('input-quran-end').value = "";
-            await pushData(); refreshUI(); showToast("Lecture ajoutée 📖");
+        window.sendPapotage = async () => {
+            const input = document.getElementById('papotage-input');
+            const msg = input.value.trim();
+            if(!msg || !currentUser) return;
+            try {
+                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'salon_messages'), { text: msg, authorId: currentUser.id, authorName: currentUser.name, timestamp: Date.now() });
+                input.value = "";
+                setTimeout(() => window.scrollTo(0, document.body.scrollHeight), 300);
+            } catch (e) { showToast("Erreur d'envoi"); }
         };
-        window.removeQuranReading = async (i) => { if(!confirm("Supprimer ?")) return; userData[activeDayIdx].readingLogs.splice(i, 1); await pushData(); refreshUI(); };
-        window.saveTarawihStop = async () => { userData[activeDayIdx].tarawihStop = document.getElementById('input-tarawih-stop').value; await pushData(); };
 
-        window.toggleCommonGoal = async (gid) => { if(!currentUser) return; const d = commonGoalsData[`day_${activeDayIdx}`] || {}; const u = d[currentUser.id] || {}; u[gid] = !u[gid]; d[currentUser.id] = u; await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'common_goals_daily', `day_${activeDayIdx}`), d); };
-        window.syncData = async (uid) => { const s = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users_progress', uid)); if (s.exists()) { userData = s.data(); } else { userData = { customRecipes: [] }; for(let i=1; i<=30; i++) userData[i] = { fasting: false, prayers: [false,false,false,false,false], tarawih: false, readingLogs: [], tarawihStop: "", quranNotes: "", journal: "", water: 0, objectives: [], suhoorRoutine: [false, false, false, false], dhikr: { sub: 0, alh: 0, ast: 0, akb: 0 } }; await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users_progress', uid), userData); } refreshUI(); };
-        window.pushData = async () => { if (!currentUser) return; await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users_progress', currentUser.id), userData); };
+        window.sendGratitude = async () => {
+            const input = document.getElementById('gratitude-input');
+            const msg = input.value.trim();
+            if(!msg) return;
+            const finalMsg = "Alhamdulillah pour " + msg;
+            await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'salon_gratitude'), { text: finalMsg, authorId: currentUser.id, authorName: currentUser.name, timestamp: Date.now() });
+            input.value = "";
+        };
 
-        window.addWaterGlass = (a) => { if (!userData[activeDayIdx]) userData[activeDayIdx] = { water: 0 }; userData[activeDayIdx].water = Math.max(0, (userData[activeDayIdx].water || 0) + a); updateWaterUI(); pushData(); };
-        function updateWaterUI() { const v = userData[activeDayIdx]?.water || 0; document.getElementById('display-water-val').innerText = v.toFixed(1); let h = ""; for(let i=1; i<=12; i++) h += `<div class="w-7 h-10 rounded-b-lg border-2 ${i <= Math.floor(v/0.25) ? 'bg-blue-400 border-blue-500 shadow-inner' : 'bg-white border-slate-200'} transition-all"></div>`; document.getElementById('water-grid').innerHTML = h; }
+        window.sendDua = async () => {
+            const input = document.getElementById('dua-input');
+            const msg = input.value.trim();
+            if(!msg) return;
+            await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'salon_duas'), { text: msg, authorId: currentUser.id, authorName: currentUser.name, timestamp: Date.now(), prayers: [] });
+            input.value = "";
+        };
 
-        window.selectQuizTheme = (t) => { currentTheme = t; currentQuestions = [...CATEGORIZED_QUIZ[t]].sort(() => Math.random() - 0.5).slice(0, 5); currentQuizIdx = 0; quizScore = 0; isQuizProcessing = false; document.getElementById('quiz-intro').classList.add('hidden'); document.getElementById('quiz-game').classList.remove('hidden'); document.getElementById('quiz-result').classList.add('hidden'); renderQuestion(); };
-        function renderQuestion() { const q = currentQuestions[currentQuizIdx]; document.getElementById('quiz-theme-label').innerText = currentTheme.toUpperCase(); document.getElementById('quiz-question-text').innerText = q.q; document.getElementById('quiz-options').innerHTML = q.a.map((a, i) => `<button id="opt-${i}" onclick="window.checkAnswer(${i})" class="w-full bg-white p-4 rounded-2xl border-2 border-slate-100 text-left text-xs font-bold transition-all shadow-sm">${a}</button>`).join(''); document.getElementById('quiz-progress').innerText = `Question ${currentQuizIdx + 1} / 5`; document.getElementById('quiz-progress-bar').style.width = `${((currentQuizIdx + 1) / 5) * 100}%`; isQuizProcessing = false; }
-        window.checkAnswer = (i) => { if(isQuizProcessing) return; isQuizProcessing = true; const q = currentQuestions[currentQuizIdx]; const btnC = document.getElementById(`opt-${i}`); const btnR = document.getElementById(`opt-${q.c}`); if(i === q.c) { btnC.classList.replace('border-slate-100', 'border-emerald-500'); btnC.classList.add('bg-emerald-50'); quizScore++; } else { btnC.classList.replace('border-slate-100', 'border-rose-500'); btnC.classList.add('bg-rose-50'); btnR.classList.replace('border-slate-100', 'border-emerald-500'); btnR.classList.add('bg-emerald-50'); } setTimeout(() => { currentQuizIdx++; if(currentQuizIdx < 5) renderQuestion(); else showQuizResult(); }, 2000); };
+        window.prayFor = async (docId) => {
+            if(!currentUser) return;
+            const ref = doc(db, 'artifacts', appId, 'public', 'data', 'salon_duas', docId);
+            const d = duasList.find(x => x.id === docId);
+            if(d && d.prayers && d.prayers.includes(currentUser.id)) return;
+            await updateDoc(ref, { prayers: arrayUnion(currentUser.id) });
+            showToast("Amine 🤲");
+        };
+
+        window.submitNameExpl = async (uid) => {
+            const input = document.getElementById(`name-expl-${uid}`);
+            const txt = input.value.trim();
+            if(!txt) return;
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'salon_names', `day_${activeDayIdx}`);
+            await setDoc(docRef, {
+                [uid]: { text: txt, author: currentUser.name, timestamp: Date.now() }
+            }, { merge: true });
+            showToast("Leçon publiée !");
+        };
+
+        window.toggleCommonGoal = async (goalId) => {
+            if(!currentUser) return;
+            const docId = `day_${activeDayIdx}`;
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'common_goals_daily', docId);
+            const dayData = commonGoalsData[docId] || {};
+            const userGoals = dayData[currentUser.id] || {};
+            userGoals[goalId] = !userGoals[goalId];
+            dayData[currentUser.id] = userGoals;
+            await setDoc(docRef, dayData);
+        };
+
+        async function syncData(userId) {
+            const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'users_progress', userId);
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) { userData = docSnap.data(); } 
+            else {
+                userData = { customRecipes: [] };
+                for(let i=1; i<=30; i++) userData[i] = { 
+                    fasting: false, 
+                    prayers: [false,false,false,false,false], 
+                    tarawih: false, 
+                    tarawihNotes: "", 
+                    tarawihStop: "",
+                    surah: "", 
+                    quranNotes: "", 
+                    journal: "", 
+                    water: 0, 
+                    objectives: [], 
+                    suhoorRoutine: [false, false, false, false], 
+                    dhikr: { sub: 0, alh: 0, ast: 0, akb: 0 },
+                    readingLogs: []
+                };
+                await setDoc(docRef, userData);
+            }
+            refreshUI();
+        }
+
+        async function pushData() {
+            if (!currentUser) return;
+            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users_progress', currentUser.id), userData);
+        }
+
+        window.addWaterGlass = (amt) => {
+            if (!userData[activeDayIdx]) userData[activeDayIdx] = { water: 0 };
+            userData[activeDayIdx].water = Math.max(0, (userData[activeDayIdx].water || 0) + amt);
+            updateWaterUI();
+            pushData();
+        };
+        function updateWaterUI() {
+            const val = userData[activeDayIdx]?.water || 0;
+            const el = document.getElementById('display-water-val');
+            if(el) el.innerText = val.toFixed(1);
+            const full = Math.floor(val / 0.25);
+            let h = ""; 
+            for(let i=1; i<=12; i++) {
+                h += `<div class="w-7 h-10 rounded-b-lg border-2 ${i <= full ? 'bg-blue-400 border-blue-500 shadow-inner' : 'bg-white border-slate-200'} transition-all"></div>`;
+            }
+            const grid = document.getElementById('water-grid');
+            if(grid) grid.innerHTML = h;
+        }
+
+        window.selectQuizTheme = (theme) => {
+            currentTheme = theme;
+            currentQuestions = [...CATEGORIZED_QUIZ[theme]].sort(() => Math.random() - 0.5).slice(0, 5);
+            currentQuizIdx = 0; quizScore = 0; isQuizProcessing = false;
+            document.getElementById('quiz-intro').classList.add('hidden');
+            document.getElementById('quiz-game').classList.remove('hidden');
+            document.getElementById('quiz-result').classList.add('hidden');
+            renderQuestion();
+        };
+        function renderQuestion() {
+            const q = currentQuestions[currentQuizIdx];
+            document.getElementById('quiz-theme-label').innerText = currentTheme.toUpperCase();
+            document.getElementById('quiz-question-text').innerText = q.q;
+            document.getElementById('quiz-options').innerHTML = q.a.map((ans, i) => `<button id="opt-${i}" onclick="window.checkAnswer(${i})" class="w-full bg-white p-4 rounded-2xl border-2 border-slate-100 text-left text-xs font-bold transition-all shadow-sm">${ans}</button>`).join('');
+            document.getElementById('quiz-progress').innerText = `Question ${currentQuizIdx + 1} / 5`;
+            document.getElementById('quiz-progress-bar').style.width = `${((currentQuizIdx + 1) / 5) * 100}%`;
+            isQuizProcessing = false;
+        }
+        window.checkAnswer = (idx) => {
+            if(isQuizProcessing) return; isQuizProcessing = true;
+            const q = currentQuestions[currentQuizIdx];
+            const btnC = document.getElementById(`opt-${idx}`);
+            const btnR = document.getElementById(`opt-${q.c}`);
+            if(idx === q.c) { btnC.classList.replace('border-slate-100', 'border-emerald-500'); btnC.classList.add('bg-emerald-50'); quizScore++; }
+            else { btnC.classList.replace('border-slate-100', 'border-rose-500'); btnC.classList.add('bg-rose-50'); btnR.classList.replace('border-slate-100', 'border-emerald-500'); btnR.classList.add('bg-emerald-50'); }
+            setTimeout(() => { currentQuizIdx++; if(currentQuizIdx < 5) renderQuestion(); else showQuizResult(); }, 2000);
+        };
         function showQuizResult() { document.getElementById('quiz-game').classList.add('hidden'); document.getElementById('quiz-result').classList.remove('hidden'); document.getElementById('final-score').innerText = `${quizScore} / 5`; }
-        window.shareQuizScore = () => { window.postToWall(`🏆 Thème ${currentTheme.toUpperCase()} : J'ai fait un score de ${quizScore}/5 ! ✨`); showToast("Score posté !"); };
+        window.shareQuizScore = () => { showToast("Score posté !"); };
         window.resetQuiz = () => { document.getElementById('quiz-intro').classList.remove('hidden'); document.getElementById('quiz-game').classList.add('hidden'); document.getElementById('quiz-result').classList.add('hidden'); };
 
         window.pressKey = (n) => { const d = document.getElementById('pin-display'); if (d.value.length < 4) d.value += n; };
         window.clearPin = () => document.getElementById('pin-display').value = "";
-        window.validatePin = () => { if (document.getElementById('pin-display').value === window.selectedLoginUser.pin) window.doLogin(window.selectedLoginUser); else { showToast("PIN incorrect !"); window.clearPin(); } };
-        window.doLogin = (u) => { currentUser = u; document.getElementById('auth-screen').classList.add('hidden'); document.getElementById('app-content').classList.remove('hidden'); document.getElementById('app-nav').classList.remove('hidden'); document.getElementById('welcome-msg').innerText = `As salam aleykoum ${u.name} ✨`; window.syncData(u.id); };
-        
-        window.selectDay = (i) => { activeDayIdx = i; refreshUI(); };
+        window.validatePin = () => {
+            if (document.getElementById('pin-display').value === window.selectedLoginUser.pin) window.doLogin(window.selectedLoginUser);
+            else { showToast("PIN incorrect !"); window.clearPin(); }
+        };
+        window.doLogin = (user) => {
+            currentUser = user;
+            document.getElementById('auth-screen').classList.add('hidden');
+            document.getElementById('app-content').classList.remove('hidden');
+            document.getElementById('app-nav').classList.remove('hidden');
+            document.getElementById('welcome-msg').innerText = `As salam aleykoum ${user.name} ✨`;
+            syncData(user.id);
+        };
+        window.selectDay = (idx) => { activeDayIdx = idx; refreshUI(); };
         window.toggleFast = () => { userData[activeDayIdx].fasting = !userData[activeDayIdx].fasting; pushData(); refreshUI(); };
-        window.togglePrayer = (i) => { if(!userData[activeDayIdx].prayers) userData[activeDayIdx].prayers = [false,false,false,false,false]; userData[activeDayIdx].prayers[i] = !userData[activeDayIdx].prayers[i]; pushData(); refreshUI(); };
-        window.toggleSuhoorRoutine = (i) => { if(!userData[activeDayIdx].suhoorRoutine) userData[activeDayIdx].suhoorRoutine = [false, false, false, false]; userData[activeDayIdx].suhoorRoutine[i] = !userData[activeDayIdx].suhoorRoutine[i]; pushData(); refreshUI(); };
+        window.togglePrayer = (i) => { 
+            if(!userData[activeDayIdx].prayers) userData[activeDayIdx].prayers = [false,false,false,false,false];
+            userData[activeDayIdx].prayers[i] = !userData[activeDayIdx].prayers[i]; 
+            pushData(); refreshUI(); 
+        };
+        window.toggleSuhoorRoutine = (i) => {
+             if(!userData[activeDayIdx].suhoorRoutine) userData[activeDayIdx].suhoorRoutine = [false, false, false, false];
+             userData[activeDayIdx].suhoorRoutine[i] = !userData[activeDayIdx].suhoorRoutine[i];
+             pushData(); refreshUI();
+        };
         window.toggleTarawih = () => { userData[activeDayIdx].tarawih = !userData[activeDayIdx].tarawih; pushData(); refreshUI(); };
-        window.addDhikr = (k) => { if(!userData[activeDayIdx].dhikr) userData[activeDayIdx].dhikr = { sub: 0, alh: 0, ast: 0, akb: 0 }; userData[activeDayIdx].dhikr[k]++; document.getElementById(`count-${k}`).innerText = userData[activeDayIdx].dhikr[k]; pushData(); };
+        window.addDhikr = (key) => {
+            if(!userData[activeDayIdx].dhikr) userData[activeDayIdx].dhikr = { sub: 0, alh: 0, ast: 0, akb: 0 };
+            userData[activeDayIdx].dhikr[key]++;
+            document.getElementById(`count-${key}`).innerText = userData[activeDayIdx].dhikr[key];
+            pushData();
+        };
         window.openResetModal = () => document.getElementById('reset-modal').classList.remove('hidden');
         window.closeResetModal = () => document.getElementById('reset-modal').classList.add('hidden');
         window.confirmResetDhikr = () => { userData[activeDayIdx].dhikr = { sub: 0, alh: 0, ast: 0, akb: 0 }; refreshUI(); pushData(); window.closeResetModal(); };
-        
-        window.saveJournal = () => { userData[activeDayIdx].quranNotes = document.getElementById('input-quran-notes').value; userData[activeDayIdx].tarawihNotes = document.getElementById('input-tarawih-notes').value; userData[activeDayIdx].journal = document.getElementById('input-journal').value; pushData(); showToast("Sauvegardé ✨"); };
-        window.addObjective = () => { const i = document.getElementById('objective-input'); if(!i.value.trim()) return; if(!userData[activeDayIdx].objectives) userData[activeDayIdx].objectives = []; userData[activeDayIdx].objectives.push({ text: i.value.trim(), done: false }); i.value = ""; pushData(); refreshUI(); };
+        window.saveJournal = () => {
+            userData[activeDayIdx].surah = document.getElementById('input-surah').value;
+            userData[activeDayIdx].quranNotes = document.getElementById('input-quran-notes').value;
+            userData[activeDayIdx].tarawihNotes = document.getElementById('input-tarawih-notes').value;
+            userData[activeDayIdx].journal = document.getElementById('input-journal').value;
+            pushData(); showToast("Sauvegardé ✨");
+        };
+        window.addObjective = () => {
+            const input = document.getElementById('objective-input');
+            if(!input.value.trim()) return;
+            if(!userData[activeDayIdx].objectives) userData[activeDayIdx].objectives = [];
+            userData[activeDayIdx].objectives.push({ text: input.value.trim(), done: false });
+            input.value = ""; pushData(); refreshUI();
+        };
         window.toggleObjective = (i) => { userData[activeDayIdx].objectives[i].done = !userData[activeDayIdx].objectives[i].done; pushData(); refreshUI(); };
         window.removeObjective = (i) => { userData[activeDayIdx].objectives.splice(i, 1); pushData(); refreshUI(); };
-        window.addManualRecipe = () => { const i = document.getElementById('recipe-input'); if(!i.value.trim()) return; if(!userData.customRecipes) userData.customRecipes = []; userData.customRecipes.push(i.value.trim()); i.value = ""; pushData(); refreshUI(); };
+        window.addManualRecipe = () => {
+            const input = document.getElementById('recipe-input');
+            if(!input.value.trim()) return;
+            if(!userData.customRecipes) userData.customRecipes = [];
+            userData.customRecipes.push(input.value.trim());
+            input.value = ""; pushData(); refreshUI();
+        };
         window.removeRecipe = (i) => { userData.customRecipes.splice(i, 1); pushData(); refreshUI(); };
 
-        window.showRandomSpiritualMessage = (m) => { const l = spiritualLibrary[m]; const r = l[Math.floor(Math.random() * l.length)]; document.getElementById('mood-result-box').classList.remove('hidden'); document.getElementById('mood-result-display').innerHTML = `<div class="animate-in slide-in-from-top-2 duration-500 text-xs italic font-bold text-slate-800 text-center">"${r.text}"<br><span class="text-[9px] uppercase not-italic text-rose-400 font-black tracking-widest">— Source ${r.ref || ''}</span></div>`; };
+        window.showRandomSpiritualMessage = (mood) => {
+            const list = spiritualLibrary[mood];
+            const randomItem = list[Math.floor(Math.random() * list.length)];
+            const box = document.getElementById('mood-result-box');
+            box.classList.remove('hidden');
+            document.getElementById('mood-result-display').innerHTML = `<div class="animate-in slide-in-from-top-2 duration-500 text-xs italic font-bold text-slate-800 text-center">"${randomItem.text}"<br><span class="text-[9px] uppercase not-italic text-rose-400 font-black tracking-widest">— Source ${randomItem.ref || ''}</span></div>`;
+        };
 
+        function renderProfileList() {
+            document.getElementById('profile-grid').innerHTML = USERS.map(u => `<button onclick="window.initiateLogin('${u.id}')" class="bg-white p-6 rounded-[2.5rem] shadow-sm flex flex-col items-center gap-3 active:scale-95 transition"><div class="w-16 h-16 rounded-full bg-rose-50 flex items-center justify-center text-xl font-bold text-rose-500">${u.name.charAt(0)}</div><span class="font-bold text-slate-700">${u.name}</span></button>`).join('');
+        }
+        window.initiateLogin = (uid) => {
+            window.selectedLoginUser = USERS.find(u => u.id === uid);
+            document.getElementById('profile-grid').classList.add('hidden');
+            document.getElementById('pin-pad').classList.remove('hidden');
+            document.getElementById('pin-name').innerText = `${window.selectedLoginUser.name}`;
+            window.clearPin();
+        };
+
+        // ✅ FIX: addQuranReading moved here so it's always available
+        window.addQuranReading = async () => {
+            const surah = document.getElementById('input-surah-new').value;
+            const start = document.getElementById('input-quran-start').value;
+            const end = document.getElementById('input-quran-end').value;
+            if(!surah || !start) { showToast("Remplis la Sourate et le début !"); return; }
+            
+            if(!userData[activeDayIdx].readingLogs) userData[activeDayIdx].readingLogs = [];
+            userData[activeDayIdx].readingLogs.push({ surah, start, end, timestamp: Date.now() });
+            
+            document.getElementById('input-surah-new').value = "";
+            document.getElementById('input-quran-start').value = "";
+            document.getElementById('input-quran-end').value = "";
+            await pushData(); refreshUI(); showToast("Lecture ajoutée 📖");
+        };
+
+        window.removeQuranReading = async (index) => {
+            if(!confirm("Supprimer cette lecture ?")) return;
+            userData[activeDayIdx].readingLogs.splice(index, 1);
+            await pushData(); refreshUI();
+        };
+
+        window.saveTarawihStop = async () => {
+            userData[activeDayIdx].tarawihStop = document.getElementById('input-tarawih-stop').value;
+            await pushData();
+        };
+        
         function refreshUI() {
             const d = userData[activeDayIdx]; if(!d) return;
             let fasted = 0; Object.values(userData).forEach(x => { if(x && typeof x === 'object' && x.fasting) fasted++; });
             document.getElementById('stats-fast-count').innerText = fasted;
-            let calHtml = ""; for(let i=1; i<=30; i++) { const cls = `aspect-square flex items-center justify-center rounded-2xl font-bold transition text-[10px] ${userData[i]?.fasting ? 'bg-rose-500 text-white shadow-sm' : 'bg-white text-slate-300'} ${activeDayIdx === i ? 'ring-2 ring-rose-600 ring-offset-2' : ''}`; calHtml += `<button onclick="window.selectDay(${i})" class="${cls}">${i}</button>`; }
+            let calHtml = "";
+            for(let i=1; i<=30; i++) {
+                const cls = `aspect-square flex items-center justify-center rounded-2xl font-bold transition text-[10px] ${userData[i]?.fasting ? 'bg-rose-500 text-white shadow-sm' : 'bg-white text-slate-300'} ${activeDayIdx === i ? 'ring-2 ring-rose-600 ring-offset-2' : ''}`;
+                calHtml += `<button onclick="window.selectDay(${i})" class="${cls}">${i}</button>`;
+            }
             document.getElementById('calendar-grid').innerHTML = calHtml;
             document.getElementById('day-title').innerText = `Jour ${activeDayIdx}`;
-            document.getElementById('fast-btn').innerText = d.fasting ? "OUI ✨" : "NON"; document.getElementById('fast-btn').className = `px-5 py-2 rounded-full text-[9px] font-black ${d.fasting ? 'bg-rose-500 text-white' : 'bg-slate-100 text-slate-400'}`;
-            const prayers = ["Fajr", "Dohr", "Asr", "Magh", "Isha"]; document.getElementById('prayer-grid').innerHTML = prayers.map((n, i) => `<button onclick="window.togglePrayer(${i})" class="flex flex-col items-center gap-1 text-center"><div class="w-9 h-9 rounded-2xl flex items-center justify-center ${d.prayers && d.prayers[i] ? 'bg-rose-500 text-white' : 'bg-slate-50 text-slate-200'}"><i data-lucide="check" class="w-5 h-5"></i></div><span class="text-[7px] font-black uppercase text-slate-400">${n}</span></button>`).join('');
+            document.getElementById('fast-btn').innerText = d.fasting ? "OUI ✨" : "NON";
+            document.getElementById('fast-btn').className = `px-5 py-2 rounded-full text-[9px] font-black ${d.fasting ? 'bg-rose-500 text-white' : 'bg-slate-100 text-slate-400'}`;
+            const prayers = ["Fajr", "Dohr", "Asr", "Magh", "Isha"];
+            document.getElementById('prayer-grid').innerHTML = prayers.map((n, i) => `<button onclick="window.togglePrayer(${i})" class="flex flex-col items-center gap-1 text-center"><div class="w-9 h-9 rounded-2xl flex items-center justify-center ${d.prayers && d.prayers[i] ? 'bg-rose-500 text-white' : 'bg-slate-50 text-slate-200'}"><i data-lucide="check" class="w-5 h-5"></i></div><span class="text-[7px] font-black uppercase text-slate-400">${n}</span></button>`).join('');
             
-            const suhoorSteps = ["Réveil", "Tahajjud", "Suhoor", "Fajr"]; const sIcons = ["alarm-clock", "moon", "coffee", "sun"]; const suhoorStatus = d.suhoorRoutine || [false, false, false, false];
-            document.getElementById('suhoor-routine-grid').innerHTML = suhoorSteps.map((s, i) => `<button onclick="window.toggleSuhoorRoutine(${i})" class="flex flex-col items-center gap-2 p-3 rounded-2xl border ${suhoorStatus[i] ? 'bg-gradient-to-br from-indigo-500 to-sky-500 text-white shadow-md border-transparent' : 'bg-white border-slate-100 text-slate-300'} transition-all duration-300"><i data-lucide="${sIcons[i]}" class="w-4 h-4 ${suhoorStatus[i] ? 'text-white' : ''}"></i><span class="text-[8px] font-black uppercase tracking-widest">${s}</span></button>`).join('');
+            // ✅ FIX: Routine Fajr avec icônes lucide correctes et correspondantes
+            const suhoorSteps = [
+                { label: "Réveil",    icon: "alarm-clock" },
+                { label: "Tahajjud", icon: "moon-star" },
+                { label: "Suhoor",   icon: "utensils" },
+                { label: "Fajr",     icon: "sunrise" }
+            ];
+            const suhoorStatus = d.suhoorRoutine || [false, false, false, false];
+            document.getElementById('suhoor-routine-grid').innerHTML = suhoorSteps.map((step, i) => {
+                const isActive = suhoorStatus[i];
+                return `<button onclick="window.toggleSuhoorRoutine(${i})" class="flex flex-col items-center gap-2 p-3 rounded-2xl border ${isActive ? 'bg-white/20 border-white text-white shadow-inner' : 'bg-white/5 border-white/10 text-blue-200'} transition-all duration-300 backdrop-blur-sm">
+                    <i data-lucide="${step.icon}" class="w-5 h-5 ${isActive ? 'text-white' : 'text-blue-200'}"></i>
+                    <span class="text-[8px] font-black uppercase tracking-widest">${step.label}</span>
+                </button>`;
+            }).join('');
 
-            document.getElementById('tarawih-btn').innerText = d.tarawih ? "FAIT ✨" : "PAS ALLÉ"; document.getElementById('tarawih-btn').className = `px-5 py-2 rounded-full text-[9px] font-black ${d.tarawih ? 'bg-indigo-500 text-white shadow-md' : 'bg-slate-100 text-slate-400'}`;
-            document.getElementById('objectives-list').innerHTML = d.objectives?.length > 0 ? d.objectives.map((o, i) => `<div class="flex items-center justify-between bg-slate-50 p-3 rounded-xl mb-2"><div class="flex items-center gap-3"><button onclick="window.toggleObjective(${i})" class="w-5 h-5 rounded-md border-2 border-rose-200 flex items-center justify-center ${o.done ? 'bg-rose-500 border-rose-500' : ''}">${o.done ? '<i data-lucide="check" class="w-3 h-3 text-white"></i>' : ''}</button><span class="text-xs ${o.done ? 'line-through text-slate-400' : 'text-slate-700 font-medium text-left'}">${o.text}</span></div><button onclick="window.removeObjective(${i})" class="text-slate-300"><i data-lucide="x" class="w-4 h-4"></i></button></div>`).join('') : '<p class="text-[9px] text-slate-400 italic text-center py-2">Aucun objectif...</p>';
-            document.getElementById('custom-recipes-list').innerHTML = userData.customRecipes?.length > 0 ? userData.customRecipes.map((r, i) => `<div class="flex items-center justify-between bg-rose-50/50 p-3 rounded-xl mb-2 border border-rose-100"><span class="text-xs font-semibold text-rose-700 text-left">🍴 ${r}</span><button onclick="window.removeRecipe(${i})" class="text-rose-300"><i data-lucide="trash-2" class="w-3 h-3"></i></button></div>`).join('') : '<p class="text-[9px] text-slate-300 italic text-center text-center">Carnet vide...</p>';
+            document.getElementById('tarawih-btn').innerText = d.tarawih ? "FAIT ✨" : "PAS ALLÉ";
+            document.getElementById('tarawih-btn').className = `px-5 py-2 rounded-full text-[9px] font-black ${d.tarawih ? 'bg-indigo-500 text-white shadow-md' : 'bg-slate-100 text-slate-400'}`;
+
+            // ✅ FIX: tarawihStop input value set dynamically in refreshUI (not inline template)
+            const tarawihStopInput = document.getElementById('input-tarawih-stop');
+            if(tarawihStopInput) tarawihStopInput.value = d.tarawihStop || '';
+            
+            document.getElementById('objectives-list').innerHTML = d.objectives?.length > 0 ? d.objectives.map((obj, i) => `<div class="flex items-center justify-between bg-slate-50 p-3 rounded-xl mb-2"><div class="flex items-center gap-3"><button onclick="window.toggleObjective(${i})" class="w-5 h-5 rounded-md border-2 border-rose-200 flex items-center justify-center ${obj.done ? 'bg-rose-500 border-rose-500' : ''}">${obj.done ? '<i data-lucide="check" class="w-3 h-3 text-white"></i>' : ''}</button><span class="text-xs ${obj.done ? 'line-through text-slate-400' : 'text-slate-700 font-medium text-left'}">${obj.text}</span></div><button onclick="window.removeObjective(${i})" class="text-slate-300"><i data-lucide="x" class="w-4 h-4"></i></button></div>`).join('') : '<p class="text-[9px] text-slate-400 italic text-center py-2">Aucun objectif...</p>';
+            document.getElementById('custom-recipes-list').innerHTML = userData.customRecipes?.length > 0 ? userData.customRecipes.map((rec, i) => `<div class="flex items-center justify-between bg-rose-50/50 p-3 rounded-xl mb-2 border border-rose-100"><span class="text-xs font-semibold text-rose-700 text-left">🍴 ${rec}</span><button onclick="window.removeRecipe(${i})" class="text-rose-300"><i data-lucide="trash-2" class="w-3 h-3"></i></button></div>`).join('') : '<p class="text-[9px] text-slate-300 italic text-center text-center">Carnet vide...</p>';
+            
             updateWaterUI();
-            const dh = d.dhikr || { sub: 0, alh: 0, ast: 0, akb: 0 }; document.getElementById('count-sub').innerText = dh.sub || 0; document.getElementById('count-alh').innerText = dh.alh || 0; document.getElementById('count-ast').innerText = dh.ast || 0; document.getElementById('count-akb').innerText = dh.akb || 0;
-            
-            // CORRECTION: Génération de la liste des lectures en JS avant l'injection
-            const readings = d.readingLogs || [];
-            let readingsHtml = "";
-            if (readings.length > 0) {
-                readingsHtml = readings.map((r, i) => `
-                    <div class="flex justify-between items-center text-[10px] py-2 border-b border-dashed border-emerald-100 last:border-0 bg-white px-3 rounded-lg shadow-sm mb-1">
-                        <div>
-                            <span class="font-bold text-emerald-800">${r.surah}</span> 
-                            <span class="text-emerald-500 italic ml-1">(V. ${r.start} à ${r.end})</span>
+            const dh = d.dhikr && typeof d.dhikr === 'object' ? d.dhikr : { sub: 0, alh: 0, ast: 0, akb: 0 };
+            document.getElementById('count-sub').innerText = dh.sub || 0;
+            document.getElementById('count-alh').innerText = dh.alh || 0;
+            document.getElementById('count-ast').innerText = dh.ast || 0;
+            document.getElementById('count-akb').innerText = dh.akb || 0;
+            document.getElementById('input-surah').value = d.surah || "";
+            document.getElementById('input-quran-notes').value = d.quranNotes || "";
+            document.getElementById('input-tarawih-notes').value = d.tarawihNotes || "";
+            document.getElementById('input-journal').value = d.journal || "";
+
+            // ✅ FIX: Quran readings list rendered dynamically in refreshUI
+            const readingsList = document.getElementById('quran-readings-list');
+            if(readingsList) {
+                const logs = d.readingLogs || [];
+                readingsList.innerHTML = logs.length > 0
+                    ? logs.map((r, i) => `
+                        <div class="flex justify-between items-center text-[10px] py-2 border-b border-dashed border-emerald-100 last:border-0 bg-white px-3 rounded-lg shadow-sm">
+                            <div>
+                                <span class="font-bold text-emerald-800">${r.surah}</span> 
+                                <span class="text-emerald-500 italic ml-1">(V. ${r.start} à ${r.end})</span>
+                            </div>
+                            <button onclick="window.removeQuranReading(${i})" class="text-rose-300 hover:text-rose-500"><i data-lucide="x" class="w-3 h-3"></i></button>
                         </div>
-                        <button onclick="window.removeQuranReading(${i})" class="text-rose-300 hover:text-rose-500"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
-                    </div>
-                `).join('');
-            } else {
-                readingsHtml = '<p class="text-[9px] text-emerald-300 italic py-2">Aucune lecture enregistrée aujourd\'hui</p>';
+                    `).join('')
+                    : '<p class="text-[9px] text-emerald-300 italic py-2">Aucune lecture enregistrée aujourd\'hui</p>';
             }
-            document.getElementById('quran-readings-list').innerHTML = readingsHtml;
 
-            // TARAWIH STOP INPUT
-            const tarawihInput = document.getElementById('input-tarawih-stop');
-            if (tarawihInput) tarawihInput.value = d.tarawihStop || "";
-
-            document.getElementById('input-quran-notes').value = d.quranNotes || ""; document.getElementById('input-tarawih-notes').value = d.tarawihNotes || ""; document.getElementById('input-journal').value = d.journal || "";
-            if(!document.getElementById('tab-salon').classList.contains('hidden')) renderSalonContent();
+            if(!document.getElementById('tab-salon').classList.contains('hidden')) { renderSalonContent(); }
             lucide.createIcons();
         }
 
-        window.switchTab = (n) => { ['calendar', 'cuisine', 'dhikr', 'spiritual', 'salon', 'quiz'].forEach(t => { document.getElementById(`tab-${t}`).classList.add('hidden'); document.getElementById(`nav-${t}`).classList.replace('text-rose-600', 'text-slate-300'); }); document.getElementById(`tab-${n}`).classList.remove('hidden'); document.getElementById(`nav-${n}`).classList.replace('text-slate-300', 'text-rose-600'); if(n === 'salon') window.backToSalonMenu(); window.scrollTo(0,0); };
-        function showToast(m) { const t = document.createElement('div'); t.className = "fixed top-12 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-4 rounded-3xl text-xs font-black z-[200] animate-bounce uppercase shadow-2xl"; t.innerText = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2500); }
+        window.switchTab = (n) => {
+            ['calendar', 'cuisine', 'dhikr', 'spiritual', 'salon', 'quiz'].forEach(t => { 
+                document.getElementById(`tab-${t}`).classList.add('hidden'); 
+                document.getElementById(`nav-${t}`).classList.replace('text-rose-600', 'text-slate-300'); 
+            });
+            document.getElementById(`tab-${n}`).classList.remove('hidden');
+            document.getElementById(`nav-${n}`).classList.replace('text-slate-300', 'text-rose-600');
+            if(n === 'salon') {
+                window.backToSalonMenu();
+            }
+            window.scrollTo(0,0);
+        };
+        function showToast(m) {
+            const t = document.createElement('div');
+            t.className = "fixed top-12 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-4 rounded-3xl text-xs font-black z-[200] animate-bounce uppercase shadow-2xl";
+            t.innerText = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2500);
+        }
         window.logout = () => { sessionStorage.clear(); location.reload(); };
         window.onload = () => { lucide.createIcons(); initApp(); };
     </script>
 
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; background-color: #FFF9FA; color: #1e293b; overscroll-behavior-y: contain; }
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+            -webkit-tap-highlight-color: transparent; 
+            background-color: #FFF9FA;
+            color: #1e293b;
+            overscroll-behavior-y: contain;
+        }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .journal-box { background: #ffffff; border: 1px solid #fee2e2; }
         .glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); }
-        input, textarea { font-size: 16px !important; pointer-events: auto !important; user-select: text !important; -webkit-user-select: text !important; }
+        
+        input, textarea { 
+            font-size: 16px !important; 
+            pointer-events: auto !important;
+            user-select: text !important;
+            -webkit-user-select: text !important;
+        }
     </style>
 </head>
 <body class="min-h-screen flex flex-col">
 
-    <datalist id="surah-list">
-        <option value="Al-Fatiha"><option value="Al-Baqarah"><option value="Al-Imran"><option value="An-Nisa"><option value="Al-Ma'idah"><option value="Al-An'am"><option value="Al-A'raf"><option value="Al-Anfal"><option value="At-Tawbah"><option value="Yunus"><option value="Hud"><option value="Yusuf"><option value="Ar-Ra'd"><option value="Ibrahim"><option value="Al-Hijr"><option value="An-Nahl"><option value="Al-Isra"><option value="Al-Kahf"><option value="Maryam"><option value="Ta-Ha"><option value="Al-Anbiya"><option value="Al-Hajj"><option value="Al-Mu'minun"><option value="An-Nur"><option value="Al-Furqan"><option value="Ash-Shu'ara"><option value="An-Naml"><option value="Al-Qasas"><option value="Al-Ankabut"><option value="Ar-Rum"><option value="Luqman"><option value="As-Sajdah"><option value="Al-Ahzab"><option value="Saba"><option value="Fatir"><option value="Ya-Sin"><option value="As-Saffat"><option value="Sad"><option value="Az-Zumar"><option value="Ghafir"><option value="Fussilat"><option value="Ash-Shura"><option value="Az-Zukhruf"><option value="Ad-Dukhan"><option value="Al-Jathiyah"><option value="Al-Ahqaf"><option value="Muhammad"><option value="Al-Fath"><option value="Al-Hujurat"><option value="Qaf"><option value="Ad-Dhariyat"><option value="At-Tur"><option value="An-Najm"><option value="Al-Qamar"><option value="Ar-Rahman"><option value="Al-Waqi'ah"><option value="Al-Hadid"><option value="Al-Mujadila"><option value="Al-Hashr"><option value="Al-Mumtahanah"><option value="As-Saff"><option value="Al-Jumu'ah"><option value="Al-Munafiqun"><option value="At-Taghabun"><option value="At-Talaq"><option value="At-Tahrim"><option value="Al-Mulk"><option value="Al-Qalam"><option value="Al-Haqqah"><option value="Al-Ma'arij"><option value="Nuh"><option value="Al-Jinn"><option value="Al-Muzzammil"><option value="Al-Muddathir"><option value="Al-Qiyamah"><option value="Al-Insan"><option value="Al-Mursalat"><option value="An-Naba"><option value="An-Nazi'at"><option value="Abasa"><option value="At-Takwir"><option value="Al-Infitar"><option value="Al-Mutaffifin"><option value="Al-Inshiqaq"><option value="Al-Buruj"><option value="At-Tariq"><option value="Al-A'la"><option value="Al-Ghashiyah"><option value="Al-Fajr"><option value="Al-Balad"><option value="Ash-Shams"><option value="Al-Layl"><option value="Ad-Duha"><option value="Ash-Sharh"><option value="At-Tin"><option value="Al-Alaq"><option value="Al-Qadr"><option value="Al-Bayyinah"><option value="Az-Zalzalah"><option value="Al-Adiyat"><option value="Al-Qari'ah"><option value="At-Takathur"><option value="Al-Asr"><option value="Al-Humazah"><option value="Al-Fil"><option value="Quraysh"><option value="Al-Ma'un"><option value="Al-Kawthar"><option value="Al-Kafirun"><option value="An-Nasr"><option value="Al-Masad"><option value="Al-Ikhlas"><option value="Al-Falaq"><option value="An-Nas">
-    </datalist>
+<datalist id="surah-list">
+    <option value="Al-Fatiha"><option value="Al-Baqarah"><option value="Al-Imran"><option value="An-Nisa"><option value="Al-Ma'idah"><option value="Al-An'am"><option value="Al-A'raf"><option value="Al-Anfal"><option value="At-Tawbah"><option value="Yunus"><option value="Hud"><option value="Yusuf"><option value="Ar-Ra'd"><option value="Ibrahim"><option value="Al-Hijr"><option value="An-Nahl"><option value="Al-Isra"><option value="Al-Kahf"><option value="Maryam"><option value="Ta-Ha"><option value="Al-Anbiya"><option value="Al-Hajj"><option value="Al-Mu'minun"><option value="An-Nur"><option value="Al-Furqan"><option value="Ash-Shu'ara"><option value="An-Naml"><option value="Al-Qasas"><option value="Al-Ankabut"><option value="Ar-Rum"><option value="Luqman"><option value="As-Sajdah"><option value="Al-Ahzab"><option value="Saba"><option value="Fatir"><option value="Ya-Sin"><option value="As-Saffat"><option value="Sad"><option value="Az-Zumar"><option value="Ghafir"><option value="Fussilat"><option value="Ash-Shura"><option value="Az-Zukhruf"><option value="Ad-Dukhan"><option value="Al-Jathiyah"><option value="Al-Ahqaf"><option value="Muhammad"><option value="Al-Fath"><option value="Al-Hujurat"><option value="Qaf"><option value="Ad-Dhariyat"><option value="At-Tur"><option value="An-Najm"><option value="Al-Qamar"><option value="Ar-Rahman"><option value="Al-Waqi'ah"><option value="Al-Hadid"><option value="Al-Mujadila"><option value="Al-Hashr"><option value="Al-Mumtahanah"><option value="As-Saff"><option value="Al-Jumu'ah"><option value="Al-Munafiqun"><option value="At-Taghabun"><option value="At-Talaq"><option value="At-Tahrim"><option value="Al-Mulk"><option value="Al-Qalam"><option value="Al-Haqqah"><option value="Al-Ma'arij"><option value="Nuh"><option value="Al-Jinn"><option value="Al-Muzzammil"><option value="Al-Muddathir"><option value="Al-Qiyamah"><option value="Al-Insan"><option value="Al-Mursalat"><option value="An-Naba"><option value="An-Nazi'at"><option value="Abasa"><option value="At-Takwir"><option value="Al-Infitar"><option value="Al-Mutaffifin"><option value="Al-Inshiqaq"><option value="Al-Buruj"><option value="At-Tariq"><option value="Al-A'la"><option value="Al-Ghashiyah"><option value="Al-Fajr"><option value="Al-Balad"><option value="Ash-Shams"><option value="Al-Layl"><option value="Ad-Duha"><option value="Ash-Sharh"><option value="At-Tin"><option value="Al-Alaq"><option value="Al-Qadr"><option value="Al-Bayyinah"><option value="Az-Zalzalah"><option value="Al-Adiyat"><option value="Al-Qari'ah"><option value="At-Takathur"><option value="Al-Asr"><option value="Al-Humazah"><option value="Al-Fil"><option value="Quraysh"><option value="Al-Ma'un"><option value="Al-Kawthar"><option value="Al-Kafirun"><option value="An-Nasr"><option value="Al-Masad"><option value="Al-Ikhlas"><option value="Al-Falaq"><option value="An-Nas">
+</datalist>
 
-    <div id="reset-modal" class="hidden fixed inset-0 z-[400] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-6 text-center">
-        <div class="bg-white rounded-[2.5rem] p-8 w-full max-w-xs shadow-2xl animate-in zoom-in duration-300 text-center border border-slate-100">
-            <h3 class="text-sm font-black mb-2 text-slate-800">Réinitialiser ?</h3>
-            <p class="text-slate-400 text-xs mb-8">Voulez-vous remettre tous les compteurs Dhikr à zéro ?</p>
-            <div class="flex flex-col gap-2">
-                <button onclick="window.confirmResetDhikr()" class="bg-rose-500 text-white py-4 rounded-2xl font-black text-xs uppercase shadow-lg">Tout effacer</button>
-                <button onclick="window.closeResetModal()" class="bg-slate-100 text-slate-400 py-4 rounded-2xl font-black text-xs uppercase text-center">Annuler</button>
+<div id="reset-modal" class="hidden fixed inset-0 z-[400] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-6 text-center">
+    <div class="bg-white rounded-[2.5rem] p-8 w-full max-w-xs shadow-2xl animate-in zoom-in duration-300 text-center border border-slate-100">
+        <h3 class="text-sm font-black mb-2 text-slate-800">Réinitialiser ?</h3>
+        <p class="text-slate-400 text-xs mb-8">Voulez-vous remettre tous les compteurs Dhikr à zéro ?</p>
+        <div class="flex flex-col gap-2">
+            <button onclick="window.confirmResetDhikr()" class="bg-rose-500 text-white py-4 rounded-2xl font-black text-xs uppercase shadow-lg">Tout effacer</button>
+            <button onclick="window.closeResetModal()" class="bg-slate-100 text-slate-400 py-4 rounded-2xl font-black text-xs uppercase text-center">Annuler</button>
+        </div>
+    </div>
+</div>
+
+<div id="loading-moon" class="fixed inset-0 z-[500] bg-white flex flex-col items-center justify-center p-6 text-center">
+    <div class="bg-rose-50 w-24 h-24 rounded-full flex items-center justify-center animate-pulse mb-4"><i data-lucide="moon" class="text-rose-500 w-12 h-12"></i></div>
+    <p class="text-slate-400 text-sm font-bold" id="error-msg">Préparation du mois béni... ✨</p>
+</div>
+
+<div id="auth-screen" class="fixed inset-0 z-[200] bg-white flex flex-col items-center justify-center p-6 text-center overflow-y-auto">
+    <div class="mb-12 text-center">
+        <h1 class="text-xl font-black text-slate-900 tracking-tight">Ramadan Sisters</h1>
+        <p class="text-slate-400 mt-2 text-[10px] italic px-6 leading-relaxed">Suivons nos progrès durant ce mois béni ✨</p>
+    </div>
+    <div id="profile-grid" class="grid grid-cols-2 gap-4 w-full max-w-sm px-4"></div>
+    <div id="pin-pad" class="hidden w-full max-w-xs animate-in fade-in zoom-in duration-300 px-4 text-center pb-12">
+        <h2 id="pin-name" class="text-lg font-black mb-6 text-slate-800 italic text-center"></h2>
+        <input type="password" id="pin-display" readonly maxlength="4" placeholder="••••" class="w-full text-center text-3xl tracking-[1rem] bg-rose-50 border-none rounded-2xl p-6 text-rose-600 outline-none mb-6">
+        <div class="grid grid-cols-3 gap-3">
+            <button onclick="window.pressKey('1')" class="bg-white p-5 rounded-2xl shadow-sm font-bold active:bg-rose-50">1</button>
+            <button onclick="window.pressKey('2')" class="bg-white p-5 rounded-2xl shadow-sm font-bold active:bg-rose-50">2</button>
+            <button onclick="window.pressKey('3')" class="bg-white p-5 rounded-2xl shadow-sm font-bold active:bg-rose-50">3</button>
+            <button onclick="window.pressKey('4')" class="bg-white p-5 rounded-2xl shadow-sm font-bold active:bg-rose-50">4</button>
+            <button onclick="window.pressKey('5')" class="bg-white p-5 rounded-2xl shadow-sm font-bold active:bg-rose-50">5</button>
+            <button onclick="window.pressKey('6')" class="bg-white p-5 rounded-2xl shadow-sm font-bold active:bg-rose-50">6</button>
+            <button onclick="window.pressKey('7')" class="bg-white p-5 rounded-2xl shadow-sm font-bold active:bg-rose-50">7</button>
+            <button onclick="window.pressKey('8')" class="bg-white p-5 rounded-2xl shadow-sm font-bold active:bg-rose-50">8</button>
+            <button onclick="window.pressKey('9')" class="bg-white p-5 rounded-2xl shadow-sm font-bold active:bg-rose-50">9</button>
+            <button onclick="window.clearPin()" class="bg-rose-50 text-rose-400 p-5 rounded-2xl font-black text-[10px] uppercase text-center">Reset</button>
+            <button onclick="window.pressKey('0')" class="bg-white p-5 rounded-2xl shadow-sm font-bold active:bg-rose-50 text-center">0</button>
+            <button onclick="window.validatePin()" class="bg-rose-500 text-white p-5 rounded-2xl font-bold shadow-md active:scale-95 transition text-center">OK</button>
+        </div>
+    </div>
+</div>
+
+<main id="app-content" class="hidden flex-1 pb-40 overflow-y-auto no-scrollbar">
+    <header class="p-6 pt-12 flex justify-between items-center bg-white rounded-b-[3rem] shadow-sm mb-6 border-b border-rose-50 sticky top-0 z-50 text-center">
+        <div><h2 id="welcome-msg" class="text-sm font-bold text-slate-800 italic">Salam !</h2><p class="text-[10px] font-bold text-rose-400 uppercase tracking-widest mt-1 italic text-left">Ramadan Companion 🌙</p></div>
+        <button onclick="window.logout()" class="p-3 bg-rose-50 rounded-2xl text-rose-500 active:scale-90 transition"><i data-lucide="power" class="w-6 h-6"></i></button>
+    </header>
+
+    <div id="tab-calendar" class="p-4 space-y-6 animate-in fade-in duration-300">
+        <section class="bg-white border-2 border-rose-100 rounded-[2.5rem] p-6 shadow-sm">
+            <div class="flex items-start gap-4">
+                <div class="bg-rose-500 p-3 rounded-2xl shadow-md text-white"><i data-lucide="heart" class="w-5 h-5 fill-current"></i></div>
+                <div class="flex-1 text-left">
+                    <h3 class="text-[11px] font-black text-slate-800 uppercase tracking-widest mb-1 italic">Pas de pression ma go !</h3>
+                    <p class="text-[9px] text-slate-600 font-medium leading-relaxed text-left">Sois indulgente avec toi-même, fais de ton mieux. Allah voit tes efforts secrets.</p>
+                </div>
             </div>
-        </div>
-    </div>
+        </section>
 
-    <div id="loading-moon" class="fixed inset-0 z-[500] bg-white flex flex-col items-center justify-center p-6 text-center">
-        <div class="bg-rose-50 w-24 h-24 rounded-full flex items-center justify-center animate-pulse mb-4"><i data-lucide="moon" class="text-rose-500 w-12 h-12"></i></div>
-        <p class="text-slate-400 text-sm font-bold" id="error-msg">Préparation du mois béni... ✨</p>
-    </div>
+        <section class="bg-gradient-to-br from-[#1e3a8a] to-[#3b82f6] rounded-[2.5rem] p-6 shadow-lg text-white text-center">
+            <h4 class="text-[9px] font-black uppercase tracking-widest mb-4 opacity-80">Routine Fajr 🌌</h4>
+            <div class="grid grid-cols-4 gap-2" id="suhoor-routine-grid"></div>
+        </section>
 
-    <div id="auth-screen" class="fixed inset-0 z-[200] bg-white flex flex-col items-center justify-center p-6 text-center overflow-y-auto">
-        <div class="mb-12 text-center">
-            <h1 class="text-xl font-black text-slate-900 tracking-tight">Ramadan Sisters</h1>
-            <p class="text-slate-400 mt-2 text-[10px] italic px-6 leading-relaxed">Suivons nos progrès durant ce mois béni ✨</p>
-        </div>
-        <div id="profile-grid" class="grid grid-cols-2 gap-4 w-full max-w-sm px-4"></div>
-        <div id="pin-pad" class="hidden w-full max-w-xs animate-in fade-in zoom-in duration-300 px-4 text-center pb-12">
-            <h2 id="pin-name" class="text-lg font-black mb-6 text-slate-800 italic text-center"></h2>
-            <input type="password" id="pin-display" readonly maxlength="4" placeholder="••••" class="w-full text-center text-3xl tracking-[1rem] bg-rose-50 border-none rounded-2xl p-6 text-rose-600 outline-none mb-6">
-            <div class="grid grid-cols-3 gap-3">
-                <button onclick="window.pressKey('1')" class="bg-white p-5 rounded-2xl shadow-sm font-bold active:bg-rose-50">1</button>
-                <button onclick="window.pressKey('2')" class="bg-white p-5 rounded-2xl shadow-sm font-bold active:bg-rose-50">2</button>
-                <button onclick="window.pressKey('3')" class="bg-white p-5 rounded-2xl shadow-sm font-bold active:bg-rose-50">3</button>
-                <button onclick="window.pressKey('4')" class="bg-white p-5 rounded-2xl shadow-sm font-bold active:bg-rose-50">4</button>
-                <button onclick="window.pressKey('5')" class="bg-white p-5 rounded-2xl shadow-sm font-bold active:bg-rose-50">5</button>
-                <button onclick="window.pressKey('6')" class="bg-white p-5 rounded-2xl shadow-sm font-bold active:bg-rose-50">6</button>
-                <button onclick="window.pressKey('7')" class="bg-white p-5 rounded-2xl shadow-sm font-bold active:bg-rose-50">7</button>
-                <button onclick="window.pressKey('8')" class="bg-white p-5 rounded-2xl shadow-sm font-bold active:bg-rose-50">8</button>
-                <button onclick="window.pressKey('9')" class="bg-white p-5 rounded-2xl shadow-sm font-bold active:bg-rose-50">9</button>
-                <button onclick="window.clearPin()" class="bg-rose-50 text-rose-400 p-5 rounded-2xl font-black text-[10px] uppercase text-center">Reset</button>
-                <button onclick="window.pressKey('0')" class="bg-white p-5 rounded-2xl shadow-sm font-bold active:bg-rose-50 text-center">0</button>
-                <button onclick="window.validatePin()" class="bg-rose-500 text-white p-5 rounded-2xl font-bold shadow-md active:scale-95 transition text-center">OK</button>
+        <section class="bg-white rounded-[2.5rem] p-6 shadow-sm text-center border border-rose-50">
+            <div class="grid grid-cols-6 gap-2 mb-6" id="calendar-grid"></div>
+            <div class="bg-rose-500 rounded-3xl p-5 text-white flex items-center justify-between shadow-lg">
+                <div><p class="text-[9px] font-bold uppercase opacity-80 tracking-widest text-left">Ma progression</p><p class="text-xl font-black text-left"><span id="stats-fast-count">0</span> / 30 <span class="text-[10px] uppercase">jeûnés</span></p></div>
+                <i data-lucide="star" class="w-8 h-8 opacity-40"></i>
             </div>
-        </div>
-    </div>
+        </section>
+        
+        <section class="bg-white rounded-[3rem] p-6 shadow-sm space-y-8 border border-rose-50 text-center">
+            <div class="flex justify-between items-center"><h4 id="day-title" class="text-sm font-black text-rose-600 italic text-left">Jour 1</h4><button onclick="window.toggleFast()" id="fast-btn" class="px-5 py-2 rounded-full text-[9px] font-black tracking-widest transition-all">NON</button></div>
+            <div><div class="flex items-center gap-2 mb-3 text-left"><i data-lucide="sun" class="w-4 h-4 text-orange-400"></i><span class="text-[9px] font-black uppercase text-slate-400 tracking-[0.2em] text-left">Prières quotidiennes</span></div><div class="grid grid-cols-5 gap-2" id="prayer-grid"></div></div>
 
-    <main id="app-content" class="hidden flex-1 pb-40 overflow-y-auto no-scrollbar">
-        <header class="p-6 pt-12 flex justify-between items-center bg-white rounded-b-[3rem] shadow-sm mb-6 border-b border-rose-50 sticky top-0 z-50 text-center">
-            <div><h2 id="welcome-msg" class="text-sm font-bold text-slate-800 italic">Salam !</h2><p class="text-[10px] font-bold text-rose-400 uppercase tracking-widest mt-1 italic text-left">Ramadan Companion 🌙</p></div>
-            <button onclick="window.logout()" class="p-3 bg-rose-50 rounded-2xl text-rose-500 active:scale-90 transition"><i data-lucide="power" class="w-6 h-6"></i></button>
-        </header>
-
-        <div id="tab-calendar" class="p-4 space-y-6 animate-in fade-in duration-300">
-            <section class="bg-white border-2 border-rose-100 rounded-[2.5rem] p-6 shadow-sm">
-                <div class="flex items-start gap-4">
-                    <div class="bg-rose-500 p-3 rounded-2xl shadow-md text-white"><i data-lucide="heart" class="w-5 h-5 fill-current"></i></div>
-                    <div class="flex-1 text-left">
-                        <h3 class="text-[11px] font-black text-slate-800 uppercase tracking-widest mb-1 italic">Pas de pression ma go !</h3>
-                        <p class="text-[9px] text-slate-600 font-medium leading-relaxed text-left">Sois indulgente avec toi-même, fais de ton mieux. Allah voit tes efforts secrets.</p>
+            <!-- ✅ TARAWIH: input-tarawih-stop value is now set via refreshUI, no inline template literal -->
+            <div class="pt-6 border-t border-slate-100 bg-indigo-50/20 p-6 rounded-[2.5rem] text-center">
+                <div class="flex justify-between items-center mb-4">
+                    <div class="flex items-center gap-3 text-left">
+                        <i data-lucide="moon" class="w-10 h-10 text-indigo-500"></i>
+                        <span class="text-xs font-black uppercase text-indigo-600 tracking-widest italic text-left">Tarawih</span>
                     </div>
+                    <button onclick="window.toggleTarawih()" id="tarawih-btn" class="transition-all"></button>
                 </div>
-            </section>
-
-            <section class="bg-gradient-to-br from-[#1e3a8a] to-[#3b82f6] rounded-[2.5rem] p-6 shadow-lg text-white text-center">
-                <h4 class="text-[9px] font-black uppercase tracking-widest mb-4 opacity-80">Routine Fajr 🌌</h4>
-                <div class="grid grid-cols-4 gap-2" id="suhoor-routine-grid"></div>
-            </section>
-
-            <section class="bg-white rounded-[2.5rem] p-6 shadow-sm text-center border border-rose-50">
-                <div class="grid grid-cols-6 gap-2 mb-6" id="calendar-grid"></div>
-                <div class="bg-rose-500 rounded-3xl p-5 text-white flex items-center justify-between shadow-lg">
-                    <div><p class="text-[9px] font-bold uppercase opacity-80 tracking-widest text-left">Ma progression</p><p class="text-xl font-black text-left"><span id="stats-fast-count">0</span> / 30 <span class="text-[10px] uppercase">jeûnés</span></p></div>
-                    <i data-lucide="star" class="w-8 h-8 opacity-40"></i>
+                <div class="flex items-center gap-2 mb-2 bg-white rounded-xl px-3 border border-indigo-50 shadow-sm">
+                    <span class="text-[9px] font-bold text-indigo-300 uppercase whitespace-nowrap">Arrêt mosquée :</span>
+                    <input type="text" id="input-tarawih-stop" onchange="window.saveTarawihStop()" placeholder="ex: Sourate Yasin, v.12" class="w-full py-3 text-xs outline-none text-indigo-800 font-bold bg-transparent">
                 </div>
-            </section>
+                <textarea id="input-tarawih-notes" rows="6" placeholder="Ressenti de la prière ce soir ?" class="w-full bg-white border border-indigo-50 rounded-2xl p-5 text-xs outline-none focus:ring-2 focus:ring-indigo-100 journal-box shadow-sm text-left"></textarea>
+            </div>
             
-            <section class="bg-white rounded-[3rem] p-6 shadow-sm space-y-8 border border-rose-50 text-center">
-                <div class="flex justify-between items-center"><h4 id="day-title" class="text-sm font-black text-rose-600 italic text-left">Jour 1</h4><button onclick="window.toggleFast()" id="fast-btn" class="px-5 py-2 rounded-full text-[9px] font-black tracking-widest transition-all">NON</button></div>
-                <div><div class="flex items-center gap-2 mb-3 text-left"><i data-lucide="sun" class="w-4 h-4 text-orange-400"></i><span class="text-[9px] font-black uppercase text-slate-400 tracking-[0.2em] text-left">Prières quotidiennes</span></div><div class="grid grid-cols-5 gap-2" id="prayer-grid"></div></div>
-
-                <div class="pt-6 border-t border-slate-100 bg-indigo-50/20 p-6 rounded-[2.5rem] text-center">
-                    <div class="flex justify-between items-center mb-4"><div class="flex items-center gap-3 text-left"><i data-lucide="moon" class="w-10 h-10 text-indigo-500"></i><span class="text-xs font-black uppercase text-indigo-600 tracking-widest italic text-left">Tarawih</span></div><button onclick="window.toggleTarawih()" id="tarawih-btn" class="transition-all"></button></div>
-                    <div class="flex items-center gap-2 mb-2 bg-white rounded-xl px-3 border border-indigo-50 shadow-sm"><span class="text-[9px] font-bold text-indigo-300 uppercase whitespace-nowrap">Arrêt mosquée :</span><input type="text" id="input-tarawih-stop" onchange="window.saveTarawihStop()" placeholder="ex: Sourate Yasin, v.12" class="w-full py-3 text-xs outline-none text-indigo-800 font-bold bg-transparent"></div>
-                    <textarea id="input-tarawih-notes" rows="6" placeholder="Ressenti de la prière ce soir ?" class="w-full bg-white border border-indigo-50 rounded-2xl p-5 text-xs outline-none focus:ring-2 focus:ring-indigo-100 journal-box shadow-sm text-left"></textarea>
+            <!-- ✅ JOURNAL DE LECTURE: quran-readings-list is now populated by refreshUI, no inline template literal -->
+            <div class="pt-6 border-t border-slate-100 bg-emerald-50/20 p-6 rounded-[2.5rem] text-center">
+                <div class="flex items-center gap-3 mb-4 text-left">
+                    <i data-lucide="book-open" class="w-10 h-10 text-emerald-500"></i>
+                    <span class="text-xs font-black uppercase text-emerald-600 tracking-widest italic text-left">Journal de Lecture</span>
                 </div>
                 
-                <div class="pt-6 border-t border-slate-100 bg-emerald-50/20 p-6 rounded-[2.5rem] text-center">
-                    <div class="flex items-center gap-3 mb-4 text-left"><i data-lucide="book-open" class="w-10 h-10 text-emerald-500"></i><span class="text-xs font-black uppercase text-emerald-600 tracking-widest italic text-left">Journal de Lecture Coran</span></div>
-                    <div class="bg-white p-3 rounded-2xl border border-emerald-50 shadow-sm mb-3">
-                        <input list="surah-list" type="text" id="input-surah-new" placeholder="Sourate (ex: Al-Mulk)" class="w-full bg-slate-50 border-none rounded-xl p-3 text-xs outline-none mb-2 font-bold text-slate-700">
-                        <div class="flex gap-2 mb-2">
-                            <input type="number" id="input-quran-start" placeholder="Début V." class="w-1/2 bg-slate-50 border-none rounded-xl p-3 text-xs outline-none text-center">
-                            <input type="number" id="input-quran-end" placeholder="Fin V." class="w-1/2 bg-slate-50 border-none rounded-xl p-3 text-xs outline-none text-center">
-                        </div>
-                        <button onclick="window.addQuranReading()" class="w-full bg-emerald-500 text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-md active:scale-95 transition">Enregistrer</button>
+                <div class="bg-white p-4 rounded-2xl border border-emerald-50 shadow-sm mb-3">
+                    <input list="surah-list" type="text" id="input-surah-new" placeholder="Sourate (ex: Al-Mulk)" class="w-full bg-slate-50 border-none rounded-xl p-3 text-xs outline-none mb-2 font-bold text-slate-700">
+                    <div class="flex gap-2 mb-2">
+                        <input type="number" id="input-quran-start" placeholder="Début V." class="w-1/2 bg-slate-50 border-none rounded-xl p-3 text-xs outline-none text-center">
+                        <input type="number" id="input-quran-end" placeholder="Fin V." class="w-1/2 bg-slate-50 border-none rounded-xl p-3 text-xs outline-none text-center">
                     </div>
-                    <div id="quran-readings-list" class="space-y-2 mb-4 px-1"></div>
-                    <textarea id="input-quran-notes" rows="6" placeholder="Verset marquant / Notes..." class="w-full bg-white border border-emerald-50 rounded-2xl p-5 text-xs outline-none journal-box shadow-sm text-left"></textarea>
+                    <button onclick="window.addQuranReading()" class="w-full bg-emerald-500 text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-md active:scale-95 transition">Ajouter la lecture</button>
                 </div>
 
-                <div class="pt-6 border-t border-slate-100 bg-rose-50/20 p-6 rounded-[2.5rem] text-center">
-                    <div class="flex items-center gap-3 mb-4 text-left"><i data-lucide="list-todo" class="w-10 h-10 text-rose-400"></i><span class="text-xs font-black uppercase text-rose-500 tracking-widest italic text-left">Objectifs Persos</span></div>
-                    <div id="objectives-list" class="space-y-2 mb-4 text-left"></div>
-                    <div class="flex gap-2"><input type="text" id="objective-input" placeholder="Ajouter un objectif..." class="flex-1 bg-white border border-rose-50 rounded-xl px-5 py-4 text-xs outline-none text-left"><button onclick="window.addObjective()" class="bg-rose-500 text-white p-4 rounded-xl shadow-md active:scale-95 transition"><i data-lucide="plus" class="w-4 h-4"></i></button></div>
+                <!-- ✅ This div is now populated dynamically in refreshUI -->
+                <div id="quran-readings-list" class="space-y-1 mb-4 bg-white/50 p-2 rounded-2xl">
+                    <p class="text-[9px] text-emerald-300 italic py-2">Aucune lecture enregistrée aujourd'hui</p>
                 </div>
 
-                <div class="pt-6 border-t border-slate-100 bg-rose-50/20 p-6 rounded-[2.5rem] text-center">
-                    <div class="flex items-center gap-3 mb-4 text-left"><i data-lucide="pen-tool" class="w-10 h-10 text-rose-400"></i><span class="text-xs font-black uppercase text-rose-500 tracking-widest italic text-left">Journal intime</span></div>
-                    <textarea id="input-journal" rows="12" placeholder="Écris ici ton ressenti profond de la journée..." class="w-full bg-white border border-rose-50 rounded-2xl p-5 text-xs outline-none journal-box shadow-sm text-left"></textarea>
-                </div>
-                <button onclick="window.saveJournal()" class="w-full bg-slate-900 text-white py-6 rounded-[2.5rem] font-black text-[10px] tracking-[0.2em] shadow-xl active:scale-95 transition uppercase text-center">Enregistrer ma journée ✨</button>
-            </section>
-        </div>
-
-        <div id="tab-cuisine" class="hidden p-4 space-y-6 text-center animate-in fade-in duration-300">
-            <section class="bg-white rounded-[2.5rem] p-8 shadow-sm border border-blue-50 text-center">
-                <div class="flex items-center justify-center gap-2 text-blue-500 mb-6"><i data-lucide="droplet" class="w-6 h-6 animate-bounce"></i><h3 class="text-[10px] font-black uppercase tracking-widest">Hydratation</h3></div>
-                <div class="text-3xl font-black text-blue-600 mb-2"><span id="display-water-val">0.0</span><span class="text-lg ml-1 opacity-50 text-blue-400">L</span></div>
-                <div class="flex flex-wrap justify-center gap-2 mb-10 px-4" id="water-grid"></div>
-                <div class="flex gap-3">
-                    <button onclick="window.addWaterGlass(0.25)" class="flex-1 bg-blue-500 text-white py-4 rounded-2xl font-black text-[10px] uppercase shadow-lg active:scale-95 transition">Boire un verre</button>
-                    <button onclick="window.addWaterGlass(-0.25)" class="bg-slate-100 text-slate-400 px-6 rounded-2xl active:scale-95 transition"><i data-lucide="minus"></i></button>
-                </div>
-            </section>
-            
-            <section class="bg-white rounded-[2.5rem] p-6 shadow-sm space-y-4 border border-rose-50 text-center">
-                <h4 class="text-[9px] font-black text-rose-500 uppercase tracking-[0.2em] italic">Mon Carnet 📒</h4>
-                <div id="custom-recipes-list" class="space-y-2 text-center"></div>
-                <div class="flex gap-2 pt-2"><input type="text" id="recipe-input" placeholder="Idée de repas..." class="flex-1 bg-slate-50 border-none rounded-xl px-5 py-4 text-xs outline-none text-left"><button onclick="window.addManualRecipe()" class="bg-rose-500 text-white p-3 rounded-xl shadow-md active:scale-95 transition"><i data-lucide="plus" class="w-4 h-4"></i></button></div>
-            </section>
-
-            <section class="space-y-4 text-center pb-8">
-                <h4 class="text-[10px] font-black text-slate-400 px-2 uppercase tracking-[0.2em] text-center">Idées Suhoor des Sisters 🥞</h4>
-                <div class="grid gap-4 text-[11px]">
-                    <div class="bg-white p-5 rounded-3xl border border-rose-50 flex items-center gap-4 shadow-sm text-left"><span class="text-2xl">🥣</span><div><p class="font-bold text-rose-900 italic">Overnight Oats Chia</p><p class="text-slate-400 leading-tight">Avoine, chia, lait et fruits. Préparé la veille.</p></div></div>
-                    <div class="bg-white p-5 rounded-3xl border border-rose-50 flex items-center gap-4 shadow-sm text-left"><span class="text-2xl">🍎</span><div><p class="font-bold text-rose-900 italic">Porridge Pommes Miel</p><p class="text-slate-400 leading-tight">Avoine chaud, pommes caramélisées et cannelle.</p></div></div>
-                    <div class="bg-white p-5 rounded-3xl border border-rose-50 flex items-center gap-4 shadow-sm text-left"><span class="text-2xl">🥞</span><div><p class="font-bold text-rose-900 italic">Pancakes Banane</p><p class="text-slate-400 leading-tight">Bananes écrasées, œufs, un peu de miel.</p></div></div>
-                    <div class="bg-white p-5 rounded-3xl border border-rose-50 flex items-center gap-4 shadow-sm text-left"><span class="text-2xl">🍳</span><div><p class="font-bold text-rose-900 italic">Oeufs & Toast</p><p class="text-slate-400 leading-tight">Oeufs pochés ou brouillés sur pain complet grillé.</p></div></div>
-                </div>
-            </section>
-        </div>
-
-        <div id="tab-salon" class="hidden p-4 space-y-4 flex flex-col min-h-[70vh] pb-44 text-center animate-in fade-in duration-300">
-            <div class="flex justify-between items-center mb-2 px-2">
-                <h3 class="text-lg font-black italic text-rose-600">Le Salon</h3>
-                <span class="text-[9px] font-bold uppercase text-slate-300 bg-white px-3 py-1 rounded-full border border-slate-100">Sisterhood</span>
+                <textarea id="input-quran-notes" rows="6" placeholder="Verset marquant / Notes..." class="w-full bg-white border border-emerald-50 rounded-2xl p-5 text-xs outline-none journal-box shadow-sm text-left"></textarea>
             </div>
-            
-            <div id="salon-content-area" class="flex-1 mt-2"></div>
-        </div>
 
-        <div id="tab-quiz" class="hidden p-4 space-y-6 flex flex-col h-[70vh] items-center justify-center text-center animate-in fade-in duration-300">
-            <div id="quiz-intro" class="bg-white p-8 rounded-[2.5rem] text-center shadow-sm w-full border border-yellow-50 overflow-y-auto max-h-full">
-                <div class="bg-yellow-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 text-yellow-500 text-2xl">🏆</div>
-                <h3 class="text-sm font-black text-slate-800 mb-2 italic">Challenge des Sisters</h3>
-                <p class="text-slate-400 text-[10px] mb-6 font-bold uppercase tracking-widest text-center">5 questions aléatoires !</p>
-                <div class="grid grid-cols-2 gap-3 mb-4 text-center">
-                    <button onclick="window.selectQuizTheme('prophetes')" class="bg-rose-50 p-4 rounded-2xl flex flex-col items-center gap-2 active:scale-95 border border-rose-100 text-center"><span class="text-xl">🕌</span><span class="text-[9px] font-black uppercase text-rose-500 text-center">Prophètes</span></button>
-                    <button onclick="window.selectQuizTheme('ramadan')" class="bg-blue-50 p-4 rounded-2xl flex flex-col items-center gap-2 active:scale-95 border border-blue-100 text-center"><span class="text-xl">🌙</span><span class="text-[9px] font-black uppercase text-blue-500 text-center">Ramadan</span></button>
-                    <button onclick="window.selectQuizTheme('coran')" class="bg-emerald-50 p-4 rounded-2xl flex flex-col items-center gap-2 active:scale-95 border border-emerald-100 text-center"><span class="text-xl">📖</span><span class="text-[9px] font-black uppercase text-emerald-500 text-center">Coran</span></button>
-                    <button onclick="window.selectQuizTheme('islam')" class="bg-purple-50 p-4 rounded-2xl flex flex-col items-center gap-2 active:scale-95 border border-purple-100 text-center"><span class="text-xl">🕋</span><span class="text-[9px] font-black uppercase text-purple-500 text-center">Islam</span></button>
-                </div>
+            <div class="pt-6 border-t border-slate-100 bg-rose-50/20 p-6 rounded-[2.5rem] text-center">
+                <div class="flex items-center gap-3 mb-4 text-left"><i data-lucide="list-todo" class="w-10 h-10 text-rose-400"></i><span class="text-xs font-black uppercase text-rose-500 tracking-widest italic text-left">Objectifs Persos</span></div>
+                <div id="objectives-list" class="space-y-2 mb-4 text-left"></div>
+                <div class="flex gap-2"><input type="text" id="objective-input" placeholder="Ajouter un objectif..." class="flex-1 bg-white border border-rose-50 rounded-xl px-5 py-4 text-xs outline-none text-left"><button onclick="window.addObjective()" class="bg-rose-500 text-white p-4 rounded-xl shadow-md active:scale-95 transition"><i data-lucide="plus" class="w-4 h-4"></i></button></div>
             </div>
-            <div id="quiz-game" class="hidden w-full bg-white p-6 rounded-[2.5rem] shadow-sm animate-in zoom-in text-center">
-                <div class="flex justify-between items-center mb-4 text-center"><span id="quiz-theme-label" class="text-[8px] font-black text-rose-500 bg-rose-50 px-3 py-1 rounded-full uppercase tracking-widest text-center"></span><p id="quiz-progress" class="text-[10px] font-black text-slate-300 uppercase text-center"></p></div>
-                <div class="w-full bg-slate-50 h-1 rounded-full mb-6 overflow-hidden text-center"><div id="quiz-progress-bar" class="bg-rose-500 h-full transition-all duration-500" style="width: 0%"></div></div>
-                <h3 id="quiz-question-text" class="text-sm font-black text-slate-800 mb-6 leading-relaxed italic min-h-[4rem] flex items-center justify-center text-center"></h3>
-                <div id="quiz-options" class="space-y-3 text-center"></div>
+
+            <div class="pt-6 border-t border-slate-100 bg-rose-50/20 p-6 rounded-[2.5rem] text-center">
+                <div class="flex items-center gap-3 mb-4 text-left"><i data-lucide="pen-tool" class="w-10 h-10 text-rose-400"></i><span class="text-xs font-black uppercase text-rose-500 tracking-widest italic text-left">Journal intime</span></div>
+                <textarea id="input-journal" rows="12" placeholder="Écris ici ton ressenti profond de la journée..." class="w-full bg-white border border-rose-50 rounded-2xl p-5 text-xs outline-none journal-box shadow-sm text-left"></textarea>
             </div>
-            <div id="quiz-result" class="hidden w-full bg-white p-8 rounded-[2.5rem] text-center shadow-sm animate-in bounce-in text-center">
-                <div class="text-rose-500 text-4xl font-black mb-2 text-center" id="final-score">0 / 5</div>
-                <p id="quiz-feedback" class="text-[10px] text-slate-600 mb-10 italic text-center">Masha'Allah ! Rejoue pour apprendre ! ✨</p>
-                <div class="flex flex-col gap-3 text-center"><button onclick="window.shareQuizScore()" class="bg-rose-500 text-white py-5 rounded-2xl font-black text-[10px] uppercase shadow-lg flex items-center justify-center gap-2 text-center"><i data-lucide="message-circle" class="w-4 h-4"></i> Partager</button><button onclick="window.resetQuiz()" class="bg-slate-50 text-slate-400 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest text-center">Rejouer</button></div>
+            <button onclick="window.saveJournal()" class="w-full bg-slate-900 text-white py-6 rounded-[2.5rem] font-black text-[10px] tracking-[0.2em] shadow-xl active:scale-95 transition uppercase text-center">Enregistrer ma journée ✨</button>
+        </section>
+    </div>
+
+    <div id="tab-cuisine" class="hidden p-4 space-y-6 text-center animate-in fade-in duration-300">
+        <section class="bg-white rounded-[2.5rem] p-8 shadow-sm border border-blue-50 text-center">
+            <div class="flex items-center justify-center gap-2 text-blue-500 mb-6"><i data-lucide="droplet" class="w-6 h-6 animate-bounce"></i><h3 class="text-[10px] font-black uppercase tracking-widest">Hydratation</h3></div>
+            <div class="text-3xl font-black text-blue-600 mb-2"><span id="display-water-val">0.0</span><span class="text-lg ml-1 opacity-50 text-blue-400">L</span></div>
+            <div class="flex flex-wrap justify-center gap-2 mb-10 px-4" id="water-grid"></div>
+            <div class="flex gap-3">
+                <button onclick="window.addWaterGlass(0.25)" class="flex-1 bg-blue-500 text-white py-4 rounded-2xl font-black text-[10px] uppercase shadow-lg active:scale-95 transition">Boire un verre</button>
+                <button onclick="window.addWaterGlass(-0.25)" class="bg-slate-100 text-slate-400 px-6 rounded-2xl active:scale-95 transition"><i data-lucide="minus"></i></button>
+            </div>
+        </section>
+        
+        <section class="bg-white rounded-[2.5rem] p-6 shadow-sm space-y-4 border border-rose-50 text-center">
+            <h4 class="text-[9px] font-black text-rose-500 uppercase tracking-[0.2em] italic">Mon Carnet 📒</h4>
+            <div id="custom-recipes-list" class="space-y-2 text-center"></div>
+            <div class="flex gap-2 pt-2"><input type="text" id="recipe-input" placeholder="Idée de repas..." class="flex-1 bg-slate-50 border-none rounded-xl px-5 py-4 text-xs outline-none text-left"><button onclick="window.addManualRecipe()" class="bg-rose-500 text-white p-3 rounded-xl shadow-md active:scale-95 transition"><i data-lucide="plus" class="w-4 h-4"></i></button></div>
+        </section>
+
+        <section class="space-y-4 text-center pb-8">
+            <h4 class="text-[10px] font-black text-slate-400 px-2 uppercase tracking-[0.2em] text-center">Idées Suhoor des Sisters 🥞</h4>
+            <div class="grid gap-4 text-[11px]">
+                <div class="bg-white p-5 rounded-3xl border border-rose-50 flex items-center gap-4 shadow-sm text-left"><span class="text-2xl">🥣</span><div><p class="font-bold text-rose-900 italic">Overnight Oats Chia</p><p class="text-slate-400 leading-tight">Avoine, chia, lait et fruits. Préparé la veille.</p></div></div>
+                <div class="bg-white p-5 rounded-3xl border border-rose-50 flex items-center gap-4 shadow-sm text-left"><span class="text-2xl">🍎</span><div><p class="font-bold text-rose-900 italic">Porridge Pommes Miel</p><p class="text-slate-400 leading-tight">Avoine chaud, pommes caramélisées et cannelle.</p></div></div>
+                <div class="bg-white p-5 rounded-3xl border border-rose-50 flex items-center gap-4 shadow-sm text-left"><span class="text-2xl">🥞</span><div><p class="font-bold text-rose-900 italic">Pancakes Banane</p><p class="text-slate-400 leading-tight">Bananes écrasées, œufs, un peu de miel.</p></div></div>
+                <div class="bg-white p-5 rounded-3xl border border-rose-50 flex items-center gap-4 shadow-sm text-left"><span class="text-2xl">🍳</span><div><p class="font-bold text-rose-900 italic">Oeufs & Toast</p><p class="text-slate-400 leading-tight">Oeufs pochés ou brouillés sur pain complet grillé.</p></div></div>
+            </div>
+        </section>
+    </div>
+
+    <div id="tab-salon" class="hidden p-4 space-y-4 flex flex-col min-h-[70vh] pb-44 text-center animate-in fade-in duration-300">
+        <div class="flex justify-between items-center mb-2 px-2">
+            <h3 class="text-lg font-black italic text-rose-600">Le Salon</h3>
+            <span class="text-[9px] font-bold uppercase text-slate-300 bg-white px-3 py-1 rounded-full border border-slate-100">Sisterhood</span>
+        </div>
+        <div id="salon-content-area" class="flex-1 mt-2"></div>
+    </div>
+
+    <div id="tab-quiz" class="hidden p-4 space-y-6 flex flex-col h-[70vh] items-center justify-center text-center animate-in fade-in duration-300">
+        <div id="quiz-intro" class="bg-white p-8 rounded-[2.5rem] text-center shadow-sm w-full border border-yellow-50 overflow-y-auto max-h-full">
+            <div class="bg-yellow-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 text-yellow-500 text-2xl">🏆</div>
+            <h3 class="text-sm font-black text-slate-800 mb-2 italic">Challenge des Sisters</h3>
+            <p class="text-slate-400 text-[10px] mb-6 font-bold uppercase tracking-widest text-center">5 questions aléatoires !</p>
+            <div class="grid grid-cols-2 gap-3 mb-4 text-center">
+                <button onclick="window.selectQuizTheme('prophetes')" class="bg-rose-50 p-4 rounded-2xl flex flex-col items-center gap-2 active:scale-95 border border-rose-100 text-center"><span class="text-xl">🕌</span><span class="text-[9px] font-black uppercase text-rose-500 text-center">Prophètes</span></button>
+                <button onclick="window.selectQuizTheme('ramadan')" class="bg-blue-50 p-4 rounded-2xl flex flex-col items-center gap-2 active:scale-95 border border-blue-100 text-center"><span class="text-xl">🌙</span><span class="text-[9px] font-black uppercase text-blue-500 text-center">Ramadan</span></button>
+                <button onclick="window.selectQuizTheme('coran')" class="bg-emerald-50 p-4 rounded-2xl flex flex-col items-center gap-2 active:scale-95 border border-emerald-100 text-center"><span class="text-xl">📖</span><span class="text-[9px] font-black uppercase text-emerald-500 text-center">Coran</span></button>
+                <button onclick="window.selectQuizTheme('islam')" class="bg-purple-50 p-4 rounded-2xl flex flex-col items-center gap-2 active:scale-95 border border-purple-100 text-center"><span class="text-xl">🕋</span><span class="text-[9px] font-black uppercase text-purple-500 text-center">Islam</span></button>
             </div>
         </div>
-
-        <div id="tab-dhikr" class="hidden p-4 space-y-6 flex flex-col items-center text-center animate-in fade-in duration-300">
-            <div class="w-full bg-gradient-to-r from-rose-500 to-rose-400 p-6 rounded-[2.5rem] shadow-lg text-white mb-4">
-                <p class="text-[9px] font-bold uppercase tracking-[0.2em] opacity-80 mb-2">Total des Sisters</p>
-                <div class="text-4xl font-black" id="global-dhikr-count">0</div>
-                <p class="text-[9px] mt-1 font-medium italic">Dhikr cumulé par nous toutes ✨</p>
-            </div>
-            <h3 class="text-sm font-black text-rose-600 italic mt-4 mb-4 text-center">Mon Tasbih ✨</h3>
-            <div class="grid grid-cols-2 gap-4 w-full px-4 text-center">
-                <button onclick="window.addDhikr('sub')" class="bg-white p-5 rounded-[2rem] border border-rose-50 shadow-sm active:scale-95 transition-all text-center"><p class="text-base font-black text-rose-600 mb-1 text-center">Subhanallah</p><p class="text-[8px] text-slate-400 uppercase font-black tracking-widest mb-3 text-center">Gloire à Allah</p><div class="text-3xl font-black text-slate-800 text-center" id="count-sub">0</div></button>
-                <button onclick="window.addDhikr('alh')" class="bg-white p-5 rounded-[2rem] border border-rose-50 shadow-sm active:scale-95 transition-all text-center"><p class="text-base font-black text-rose-600 mb-1 text-center">Alhamdulillah</p><p class="text-[8px] text-slate-400 uppercase font-black tracking-widest mb-3 text-center">Louange à Allah</p><div class="text-3xl font-black text-slate-800 text-center" id="count-alh">0</div></button>
-                <button onclick="window.addDhikr('ast')" class="bg-white p-5 rounded-[2rem] border border-rose-50 shadow-sm active:scale-95 transition-all text-center"><p class="text-lg font-black text-rose-600 mb-1 text-center">Astaghfirullah</p><p class="text-[8px] text-slate-400 uppercase font-black tracking-widest mb-3 text-center">Pardon</p><div class="text-3xl font-black text-slate-800 text-center" id="count-ast">0</div></button>
-                <button onclick="window.addDhikr('akb')" class="bg-white p-5 rounded-[2rem] border border-rose-50 shadow-sm active:scale-95 transition-all text-center"><p class="text-base font-black text-rose-600 mb-1 text-center">Allahu Akbar</p><p class="text-[8px] text-slate-400 uppercase font-black tracking-widest mb-3 text-center">Plus Grand</p><div class="text-3xl font-black text-slate-800 text-center" id="count-akb">0</div></button>
-            </div>
-            <button onclick="window.openResetModal()" class="mt-8 text-slate-300 font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 bg-white px-6 py-3 rounded-full shadow-sm mx-auto text-center border border-slate-100"><i data-lucide="rotate-ccw" class="w-3 h-3"></i> Réinitialiser</button>
+        <div id="quiz-game" class="hidden w-full bg-white p-6 rounded-[2.5rem] shadow-sm animate-in zoom-in text-center">
+            <div class="flex justify-between items-center mb-4 text-center"><span id="quiz-theme-label" class="text-[8px] font-black text-rose-500 bg-rose-50 px-3 py-1 rounded-full uppercase tracking-widest text-center"></span><p id="quiz-progress" class="text-[10px] font-black text-slate-300 uppercase text-center"></p></div>
+            <div class="w-full bg-slate-50 h-1 rounded-full mb-6 overflow-hidden text-center"><div id="quiz-progress-bar" class="bg-rose-500 h-full transition-all duration-500" style="width: 0%"></div></div>
+            <h3 id="quiz-question-text" class="text-sm font-black text-slate-800 mb-6 leading-relaxed italic min-h-[4rem] flex items-center justify-center text-center"></h3>
+            <div id="quiz-options" class="space-y-3 text-center"></div>
         </div>
-
-        <div id="tab-spiritual" class="hidden p-4 space-y-6 pb-12 text-center animate-in fade-in duration-300">
-            <section class="bg-white rounded-[2.5rem] p-6 shadow-sm border border-rose-50 text-center">
-                <h3 class="text-sm font-black text-rose-600 italic mb-4 text-center">Mon État d'Esprit ✨</h3>
-                <div class="grid grid-cols-3 gap-2 text-center">
-                    <button onclick="window.showRandomSpiritualMessage('triste')" class="bg-blue-50 p-4 rounded-2xl flex flex-col items-center gap-1 active:scale-95 transition text-blue-400 font-black text-[8px] uppercase text-center"><span class="text-lg">😢</span>Triste</button>
-                    <button onclick="window.showRandomSpiritualMessage('anxieuse')" class="bg-indigo-50 p-4 rounded-2xl flex flex-col items-center gap-1 active:scale-95 transition text-indigo-400 font-black text-[8px] uppercase text-center"><span class="text-lg">😟</span>Anxieuse</button>
-                    <button onclick="window.showRandomSpiritualMessage('fatiguee')" class="bg-orange-50 p-4 rounded-2xl flex flex-col items-center gap-1 active:scale-95 transition text-orange-400 font-black text-[8px] uppercase text-center"><span class="text-lg">😴</span>Fatiguée</button>
-                    <button onclick="window.showRandomSpiritualMessage('reconnaissante')" class="bg-emerald-50 p-4 rounded-2xl flex flex-col items-center gap-1 active:scale-95 transition text-emerald-400 font-black text-[8px] uppercase text-center"><span class="text-lg">🙏</span>Gratitude</button>
-                    <button onclick="window.showRandomSpiritualMessage('motivee')" class="bg-rose-50 p-4 rounded-2xl flex flex-col items-center gap-1 active:scale-95 transition text-rose-400 font-black text-[8px] uppercase text-center"><span class="text-lg">🚀</span>Motivée</button>
-                    <button onclick="window.showRandomSpiritualMessage('istighfar')" class="bg-slate-100 p-4 rounded-2xl flex flex-col items-center gap-1 active:scale-95 transition text-slate-500 font-black text-[8px] uppercase border border-slate-200 shadow-inner text-center"><span class="text-lg">✨</span>Istighfar</button>
-                </div>
-                <div id="mood-result-box" class="hidden pt-6 text-center"><div class="bg-slate-50 p-6 rounded-[2.5rem] border border-rose-100 relative shadow-inner text-center"><div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-white px-4 py-1 rounded-full border border-rose-100 text-[8px] font-black text-rose-400 uppercase tracking-widest text-center">Paroles d'Allah... ✨</div><div id="mood-result-display" class="text-center"></div></div></div>
-            </section>
-            
-            <div class="space-y-4 pt-4 text-left">
-                <h4 class="text-[9px] font-black text-slate-400 px-4 uppercase tracking-[0.2em] text-center">Hadiths & Rappels 🌙</h4>
-                <div class="bg-white p-6 rounded-[2.5rem] shadow-sm border-l-4 border-rose-500 mb-3 text-left"><p class="text-[10px] font-semibold text-slate-700 italic leading-relaxed">"Celui qui jeûne Ramadan avec foi et espoir de récompense, ses péchés précédents sont pardonnés."</p><p class="text-[8px] text-rose-400 font-bold uppercase mt-2 tracking-widest text-right">— Bukhari & Muslim</p></div>
-                <div class="bg-white p-6 rounded-[2.5rem] shadow-sm border-l-4 border-emerald-500 text-left"><p class="text-[10px] font-semibold text-slate-700 italic leading-relaxed text-left">"L'odeur de la bouche du jeûneur est plus parfumée auprès d'Allah que celle du musc."</p><p class="text-[8px] text-emerald-400 font-bold uppercase mt-2 tracking-widest text-right">— Bukhari & Muslim</p></div>
+        <div id="quiz-result" class="hidden w-full bg-white p-8 rounded-[2.5rem] text-center shadow-sm animate-in bounce-in text-center">
+            <div class="text-rose-500 text-4xl font-black mb-2 text-center" id="final-score">0 / 5</div>
+            <p class="text-[10px] text-slate-600 mb-10 italic text-center">Masha'Allah ! Rejoue pour apprendre ! ✨</p>
+            <div class="flex flex-col gap-3 text-center">
+                <button onclick="window.shareQuizScore()" class="bg-rose-500 text-white py-5 rounded-2xl font-black text-[10px] uppercase shadow-lg flex items-center justify-center gap-2 text-center"><i data-lucide="message-circle" class="w-4 h-4"></i> Partager</button>
+                <button onclick="window.resetQuiz()" class="bg-slate-50 text-slate-400 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest text-center">Rejouer</button>
             </div>
         </div>
-    </main>
+    </div>
 
-    <nav id="app-nav" class="hidden fixed bottom-0 left-0 right-0 glass border-t flex justify-around p-4 pb-12 z-[150] overflow-x-auto no-scrollbar text-center">
-        <button onclick="window.switchTab('calendar')" id="nav-calendar" class="flex flex-col items-center gap-1 text-rose-600 min-w-[50px] text-center"><i data-lucide="calendar"></i><span class="text-[8px] font-black uppercase tracking-tight text-center">Suivi</span></button>
-        <button onclick="window.switchTab('salon')" id="nav-salon" class="flex flex-col items-center gap-1 text-slate-300 min-w-[50px] text-center"><i data-lucide="message-circle"></i><span class="text-[8px] font-black uppercase tracking-tight text-center">Salon</span></button>
-        <button onclick="window.switchTab('quiz')" id="nav-quiz" class="flex flex-col items-center gap-1 text-slate-300 min-w-[50px] text-center"><i data-lucide="trophy"></i><span class="text-[8px] font-black uppercase tracking-tight text-center">Quiz</span></button>
-        <button onclick="window.switchTab('cuisine')" id="nav-cuisine" class="flex flex-col items-center gap-1 text-slate-300 min-w-[50px] text-center"><i data-lucide="coffee"></i><span class="text-[8px] font-black uppercase tracking-tight text-center">Cuisine</span></button>
-        <button onclick="window.switchTab('dhikr')" id="nav-dhikr" class="flex flex-col items-center gap-1 text-slate-300 min-w-[50px] text-center"><i data-lucide="hash"></i><span class="text-[8px] font-black uppercase tracking-tight text-center">Dhikr</span></button>
-        <button onclick="window.switchTab('spiritual')" id="nav-spiritual" class="flex flex-col items-center gap-1 text-slate-300 min-w-[50px] text-center"><i data-lucide="sparkles"></i><span class="text-[8px] font-black uppercase tracking-tight text-center">Cœur</span></button>
-    </nav>
+    <div id="tab-dhikr" class="hidden p-4 space-y-6 flex flex-col items-center text-center animate-in fade-in duration-300">
+        <div class="w-full bg-gradient-to-r from-rose-500 to-rose-400 p-6 rounded-[2.5rem] shadow-lg text-white mb-4">
+            <p class="text-[9px] font-bold uppercase tracking-[0.2em] opacity-80 mb-2">Total des Sisters</p>
+            <div class="text-4xl font-black" id="global-dhikr-count">0</div>
+            <p class="text-[9px] mt-1 font-medium italic">Dhikr cumulé par nous toutes ✨</p>
+        </div>
+        <h3 class="text-sm font-black text-rose-600 italic mt-4 mb-4 text-center">Mon Tasbih ✨</h3>
+        <div class="grid grid-cols-2 gap-4 w-full px-4 text-center">
+            <button onclick="window.addDhikr('sub')" class="bg-white p-5 rounded-[2rem] border border-rose-50 shadow-sm active:scale-95 transition-all text-center"><p class="text-base font-black text-rose-600 mb-1 text-center">Subhanallah</p><p class="text-[8px] text-slate-400 uppercase font-black tracking-widest mb-3 text-center">Gloire à Allah</p><div class="text-3xl font-black text-slate-800 text-center" id="count-sub">0</div></button>
+            <button onclick="window.addDhikr('alh')" class="bg-white p-5 rounded-[2rem] border border-rose-50 shadow-sm active:scale-95 transition-all text-center"><p class="text-base font-black text-rose-600 mb-1 text-center">Alhamdulillah</p><p class="text-[8px] text-slate-400 uppercase font-black tracking-widest mb-3 text-center">Louange à Allah</p><div class="text-3xl font-black text-slate-800 text-center" id="count-alh">0</div></button>
+            <button onclick="window.addDhikr('ast')" class="bg-white p-5 rounded-[2rem] border border-rose-50 shadow-sm active:scale-95 transition-all text-center"><p class="text-lg font-black text-rose-600 mb-1 text-center">Astaghfirullah</p><p class="text-[8px] text-slate-400 uppercase font-black tracking-widest mb-3 text-center">Pardon</p><div class="text-3xl font-black text-slate-800 text-center" id="count-ast">0</div></button>
+            <button onclick="window.addDhikr('akb')" class="bg-white p-5 rounded-[2rem] border border-rose-50 shadow-sm active:scale-95 transition-all text-center"><p class="text-base font-black text-rose-600 mb-1 text-center">Allahu Akbar</p><p class="text-[8px] text-slate-400 uppercase font-black tracking-widest mb-3 text-center">Plus Grand</p><div class="text-3xl font-black text-slate-800 text-center" id="count-akb">0</div></button>
+        </div>
+        <button onclick="window.openResetModal()" class="mt-8 text-slate-300 font-bold text-[10px] uppercase tracking-widest flex items-center gap-2 bg-white px-6 py-3 rounded-full shadow-sm mx-auto text-center border border-slate-100"><i data-lucide="rotate-ccw" class="w-3 h-3"></i> Réinitialiser</button>
+    </div>
 
-    <script>lucide.createIcons();</script>
+    <div id="tab-spiritual" class="hidden p-4 space-y-6 pb-12 text-center animate-in fade-in duration-300">
+        <section class="bg-white rounded-[2.5rem] p-6 shadow-sm border border-rose-50 text-center">
+            <h3 class="text-sm font-black text-rose-600 italic mb-4 text-center">Mon État d'Esprit ✨</h3>
+            <div class="grid grid-cols-3 gap-2 text-center">
+                <button onclick="window.showRandomSpiritualMessage('triste')" class="bg-blue-50 p-4 rounded-2xl flex flex-col items-center gap-1 active:scale-95 transition text-blue-400 font-black text-[8px] uppercase text-center"><span class="text-lg">😢</span>Triste</button>
+                <button onclick="window.showRandomSpiritualMessage('anxieuse')" class="bg-indigo-50 p-4 rounded-2xl flex flex-col items-center gap-1 active:scale-95 transition text-indigo-400 font-black text-[8px] uppercase text-center"><span class="text-lg">😟</span>Anxieuse</button>
+                <button onclick="window.showRandomSpiritualMessage('fatiguee')" class="bg-orange-50 p-4 rounded-2xl flex flex-col items-center gap-1 active:scale-95 transition text-orange-400 font-black text-[8px] uppercase text-center"><span class="text-lg">😴</span>Fatiguée</button>
+                <button onclick="window.showRandomSpiritualMessage('reconnaissante')" class="bg-emerald-50 p-4 rounded-2xl flex flex-col items-center gap-1 active:scale-95 transition text-emerald-400 font-black text-[8px] uppercase text-center"><span class="text-lg">🙏</span>Gratitude</button>
+                <button onclick="window.showRandomSpiritualMessage('motivee')" class="bg-rose-50 p-4 rounded-2xl flex flex-col items-center gap-1 active:scale-95 transition text-rose-400 font-black text-[8px] uppercase text-center"><span class="text-lg">🚀</span>Motivée</button>
+                <button onclick="window.showRandomSpiritualMessage('istighfar')" class="bg-slate-100 p-4 rounded-2xl flex flex-col items-center gap-1 active:scale-95 transition text-slate-500 font-black text-[8px] uppercase border border-slate-200 shadow-inner text-center"><span class="text-lg">✨</span>Istighfar</button>
+            </div>
+            <div id="mood-result-box" class="hidden pt-6 text-center"><div class="bg-slate-50 p-6 rounded-[2.5rem] border border-rose-100 relative shadow-inner text-center"><div class="absolute -top-3 left-1/2 -translate-x-1/2 bg-white px-4 py-1 rounded-full border border-rose-100 text-[8px] font-black text-rose-400 uppercase tracking-widest text-center">Paroles d'Allah... ✨</div><div id="mood-result-display" class="text-center"></div></div></div>
+        </section>
+        
+        <div class="space-y-4 pt-4 text-left">
+            <h4 class="text-[9px] font-black text-slate-400 px-4 uppercase tracking-[0.2em] text-center">Hadiths & Rappels 🌙</h4>
+            <div class="bg-white p-6 rounded-[2.5rem] shadow-sm border-l-4 border-rose-500 mb-3 text-left"><p class="text-[10px] font-semibold text-slate-700 italic leading-relaxed">"Celui qui jeûne Ramadan avec foi et espoir de récompense, ses péchés précédents sont pardonnés."</p><p class="text-[8px] text-rose-400 font-bold uppercase mt-2 tracking-widest text-right">— Bukhari & Muslim</p></div>
+            <div class="bg-white p-6 rounded-[2.5rem] shadow-sm border-l-4 border-emerald-500 text-left"><p class="text-[10px] font-semibold text-slate-700 italic leading-relaxed text-left">"L'odeur de la bouche du jeûneur est plus parfumée auprès d'Allah que celle du musc."</p><p class="text-[8px] text-emerald-400 font-bold uppercase mt-2 tracking-widest text-right">— Bukhari & Muslim</p></div>
+        </div>
+    </div>
+</main>
+
+<nav id="app-nav" class="hidden fixed bottom-0 left-0 right-0 glass border-t flex justify-around p-4 pb-12 z-[150] overflow-x-auto no-scrollbar text-center">
+    <button onclick="window.switchTab('calendar')" id="nav-calendar" class="flex flex-col items-center gap-1 text-rose-600 min-w-[50px] text-center"><i data-lucide="calendar"></i><span class="text-[8px] font-black uppercase tracking-tight text-center">Suivi</span></button>
+    <button onclick="window.switchTab('salon')" id="nav-salon" class="flex flex-col items-center gap-1 text-slate-300 min-w-[50px] text-center"><i data-lucide="message-circle"></i><span class="text-[8px] font-black uppercase tracking-tight text-center">Salon</span></button>
+    <button onclick="window.switchTab('quiz')" id="nav-quiz" class="flex flex-col items-center gap-1 text-slate-300 min-w-[50px] text-center"><i data-lucide="trophy"></i><span class="text-[8px] font-black uppercase tracking-tight text-center">Quiz</span></button>
+    <button onclick="window.switchTab('cuisine')" id="nav-cuisine" class="flex flex-col items-center gap-1 text-slate-300 min-w-[50px] text-center"><i data-lucide="coffee"></i><span class="text-[8px] font-black uppercase tracking-tight text-center">Cuisine</span></button>
+    <button onclick="window.switchTab('dhikr')" id="nav-dhikr" class="flex flex-col items-center gap-1 text-slate-300 min-w-[50px] text-center"><i data-lucide="hash"></i><span class="text-[8px] font-black uppercase tracking-tight text-center">Dhikr</span></button>
+    <button onclick="window.switchTab('spiritual')" id="nav-spiritual" class="flex flex-col items-center gap-1 text-slate-300 min-w-[50px] text-center"><i data-lucide="sparkles"></i><span class="text-[8px] font-black uppercase tracking-tight text-center">Cœur</span></button>
+</nav>
+
+<script>lucide.createIcons();</script>
 </body>
 </html>
