@@ -29,40 +29,22 @@
         const db = getFirestore(app);
         const auth = getAuth(app);
         
-        // ON GARDE v5 POUR TES DONNÉES
+        // V5 pour garder tes données intactes
         const appId = 'ramadan-sisters-final-app-v5'; 
 
-        window.db = db;
-        window.doc = doc;
-        window.setDoc = setDoc;
-        window.getDoc = getDoc;
-        window.collection = collection;
-        window.addDoc = addDoc;
-        window.deleteDoc = deleteDoc;
-        window.onSnapshot = onSnapshot;
-        window.updateDoc = updateDoc;
-        window.arrayUnion = arrayUnion;
+        window.db = db; window.doc = doc; window.setDoc = setDoc; window.getDoc = getDoc;
+        window.collection = collection; window.addDoc = addDoc; window.deleteDoc = deleteDoc;
+        window.onSnapshot = onSnapshot; window.updateDoc = updateDoc; window.arrayUnion = arrayUnion;
 
         let currentUser = null;
         let activeDayIdx = 1;
         let userData = {};
         
-        // SALON DATA
-        let sharedMessages = [];
-        let gratitudeMessages = [];
-        let duasList = [];
-        let namesExplanations = {};
+        let sharedMessages = []; let gratitudeMessages = []; let duasList = []; let namesExplanations = {};
         let globalDhikrCount = 0;
-        
-        let salonViewMode = 'menu'; 
-        let activeSalonRoom = '';   
-
+        let salonViewMode = 'menu'; let activeSalonRoom = '';   
         let commonGoalsData = {};
-        let currentQuestions = [];
-        let currentQuizIdx = 0;
-        let quizScore = 0;
-        let currentTheme = ""; 
-        let isQuizProcessing = false;
+        let currentQuestions = []; let currentQuizIdx = 0; let quizScore = 0; let currentTheme = ""; let isQuizProcessing = false;
         
         const USERS = [
             { id: 'samia', name: 'Samia', pin: '2025', color: 'bg-rose-100 text-rose-600' },
@@ -71,136 +53,14 @@
             { id: 'cherryl', name: 'Cherryl', pin: '1303', color: 'bg-purple-100 text-purple-600' }
         ];
 
-        const ALLAH_NAMES = [
-            {n: "Allah", t: "Dieu"}, {n: "Ar-Rahman", t: "Le Tout-Miséricordieux"}, {n: "Ar-Rahim", t: "Le Très-Miséricordieux"}, {n: "Al-Malik", t: "Le Souverain"}, {n: "Al-Quddus", t: "Le Saint"},
-            {n: "As-Salam", t: "La Paix"}, {n: "Al-Mu'min", t: "Le Croyant"}, {n: "Al-Muhaymin", t: "Le Prédominant"}, {n: "Al-Aziz", t: "Le Tout-Puissant"}, {n: "Al-Jabbar", t: "Le Contraignant"},
-            {n: "Al-Mutakabbir", t: "Le Superbe"}, {n: "Al-Khaliq", t: "Le Créateur"}, {n: "Al-Bari", t: "Le Producteur"}, {n: "Al-Musawwir", t: "Le Façonneur"}, {n: "Al-Ghaffar", t: "Le Grand Pardonneur"},
-            {n: "Al-Qahhar", t: "Le Dominateur Suprême"}, {n: "Al-Wahhab", t: "Le Tout-Donateur"}, {n: "Ar-Razzaq", t: "Le Grand Pourvoyeur"}, {n: "Al-Fattah", t: "Le Grand Juge"}, {n: "Al-Alim", t: "L'Omniscient"},
-            {n: "Al-Qabid", t: "Celui qui retient"}, {n: "Al-Basit", t: "Celui qui étend"}, {n: "Al-Khafid", t: "Celui qui abaisse"}, {n: "Ar-Rafi", t: "Celui qui élève"}, {n: "Al-Mu'izz", t: "Celui qui donne la puissance"},
-            {n: "Al-Mudhill", t: "Celui qui humilie"}, {n: "As-Sami", t: "L'Audient"}, {n: "Al-Basir", t: "Le Clairvoyant"}, {n: "Al-Hakam", t: "Le Juge"}, {n: "Al-Adl", t: "Le Juste"},
-            {n: "Al-Latif", t: "Le Subtil"}, {n: "Al-Khabir", t: "Le Bien-Informé"}, {n: "Al-Halim", t: "Le Clément"}, {n: "Al-Azim", t: "L'Immense"}, {n: "Al-Ghafur", t: "Le Pardonneur"},
-            {n: "Ash-Shakur", t: "Le Très-Reconnaissant"}, {n: "Al-Ali", t: "Le Très-Haut"}, {n: "Al-Kabir", t: "Le Très-Grand"}, {n: "Al-Hafiz", t: "Le Gardien"}, {n: "Al-Muqit", t: "Le Nourricier"},
-            {n: "Al-Hasib", t: "Celui qui tient compte"}, {n: "Al-Jalil", t: "Le Majestueux"}, {n: "Al-Karim", t: "Le Tout-Généreux"}, {n: "Ar-Raqib", t: "L'Observateur"}, {n: "Al-Mujib", t: "Celui qui exauce"},
-            {n: "Al-Wasi", t: "Le Vaste"}, {n: "Al-Hakim", t: "Le Sage"}, {n: "Al-Wadud", t: "Le Tout-Affectueux"}, {n: "Al-Majid", t: "Le Tout-Glorieux"}, {n: "Al-Ba'ith", t: "Celui qui ressuscite"},
-            {n: "Ash-Shahid", t: "Le Témoin"}, {n: "Al-Haqq", t: "Le Vrai"}, {n: "Al-Wakil", t: "Le Gérant"}, {n: "Al-Qawiyy", t: "Le Fort"}, {n: "Al-Matin", t: "Le Robuste"},
-            {n: "Al-Waliyy", t: "Le Protecteur"}, {n: "Al-Hamid", t: "Le Digne de Louange"}, {n: "Al-Muhsi", t: "Celui qui dénombre"}, {n: "Al-Mubdi", t: "L'Auteur"}, {n: "Al-Mu'id", t: "Celui qui redonne vie"},
-            {n: "Al-Muhyi", t: "Celui qui fait vivre"}, {n: "Al-Mumit", t: "Celui qui fait mourir"}, {n: "Al-Hayy", t: "Le Vivant"}, {n: "Al-Qayyum", t: "Le Subsistant par lui-même"}, {n: "Al-Wajid", t: "L'Opulent"},
-            {n: "Al-Majid", t: "Le Noble"}, {n: "Al-Wahid", t: "L'Unique"}, {n: "As-Samad", t: "Le Soutien Universel"}, {n: "Al-Qadir", t: "Le Puissant"}, {n: "Al-Muqtadir", t: "Le Détenteur du Pouvoir"},
-            {n: "Al-Muqaddim", t: "Celui qui met en avant"}, {n: "Al-Mu'akhkhir", t: "Celui qui met en arrière"}, {n: "Al-Awwal", t: "Le Premier"}, {n: "Al-Akhir", t: "Le Dernier"}, {n: "Az-Zahir", t: "L'Apparent"},
-            {n: "Al-Batin", t: "Le Caché"}, {n: "Al-Wali", t: "Le Maître"}, {n: "Al-Muta'ali", t: "Le Sublime"}, {n: "Al-Barr", t: "Le Bienfaisant"}, {n: "At-Tawwab", t: "L'Accueillant au repentir"},
-            {n: "Al-Muntaqim", t: "Le Vengeur"}, {n: "Al-Afuww", t: "L'Indulgent"}, {n: "Ar-Ra'uf", t: "Le Bienveillant"}, {n: "Malik-ul-Mulk", t: "Le Maître de la Royauté"}, {n: "Dhul-Jalal-wal-Ikram", t: "Le Détenteur de la Majesté"},
-            {n: "Al-Muqsit", t: "L'Équitable"}, {n: "Al-Jami", t: "Le Rassembleur"}, {n: "Al-Ghani", t: "Le Riche"}, {n: "Al-Mughni", t: "Celui qui enrichit"}, {n: "Al-Mani", t: "Le Défenseur"},
-            {n: "Ad-Darr", t: "Celui qui peut nuire"}, {n: "An-Nafi", t: "L'Utile"}, {n: "An-Nur", t: "La Lumière"}, {n: "Al-Hadi", t: "Le Guide"}, {n: "Al-Badi", t: "L'Inventeur"},
-            {n: "Al-Baqi", t: "Le Permanent"}, {n: "Al-Warith", t: "L'Héritier"}, {n: "Ar-Rashid", t: "Le Droit"}, {n: "As-Sabur", t: "Le Patient"}
-        ];
+        // LISTE COMPRESSÉE
+        const ALLAH_NAMES = [{n:"Allah",t:"Dieu"},{n:"Ar-Rahman",t:"Le Tout-Miséricordieux"},{n:"Ar-Rahim",t:"Le Très-Miséricordieux"},{n:"Al-Malik",t:"Le Souverain"},{n:"Al-Quddus",t:"Le Saint"},{n:"As-Salam",t:"La Paix"},{n:"Al-Mu'min",t:"Le Croyant"},{n:"Al-Muhaymin",t:"Le Prédominant"},{n:"Al-Aziz",t:"Le Tout-Puissant"},{n:"Al-Jabbar",t:"Le Contraignant"},{n:"Al-Mutakabbir",t:"Le Superbe"},{n:"Al-Khaliq",t:"Le Créateur"},{n:"Al-Bari",t:"Le Producteur"},{n:"Al-Musawwir",t:"Le Façonneur"},{n:"Al-Ghaffar",t:"Le Grand Pardonneur"},{n:"Al-Qahhar",t:"Le Dominateur Suprême"},{n:"Al-Wahhab",t:"Le Tout-Donateur"},{n:"Ar-Razzaq",t:"Le Grand Pourvoyeur"},{n:"Al-Fattah",t:"Le Grand Juge"},{n:"Al-Alim",t:"L'Omniscient"},{n:"Al-Qabid",t:"Celui qui retient"},{n:"Al-Basit",t:"Celui qui étend"},{n:"Al-Khafid",t:"Celui qui abaisse"},{n:"Ar-Rafi",t:"Celui qui élève"},{n:"Al-Mu'izz",t:"Celui qui donne la puissance"},{n:"Al-Mudhill",t:"Celui qui humilie"},{n:"As-Sami",t:"L'Audient"},{n:"Al-Basir",t:"Le Clairvoyant"},{n:"Al-Hakam",t:"Le Juge"},{n:"Al-Adl",t:"Le Juste"},{n:"Al-Latif",t:"Le Subtil"},{n:"Al-Khabir",t:"Le Bien-Informé"},{n:"Al-Halim",t:"Le Clément"},{n:"Al-Azim",t:"L'Immense"},{n:"Al-Ghafur",t:"Le Pardonneur"},{n:"Ash-Shakur",t:"Le Très-Reconnaissant"},{n:"Al-Ali",t:"Le Très-Haut"},{n:"Al-Kabir",t:"Le Très-Grand"},{n:"Al-Hafiz",t:"Le Gardien"},{n:"Al-Muqit",t:"Le Nourricier"},{n:"Al-Hasib",t:"Celui qui tient compte"},{n:"Al-Jalil",t:"Le Majestueux"},{n:"Al-Karim",t:"Le Tout-Généreux"},{n:"Ar-Raqib",t:"L'Observateur"},{n:"Al-Mujib",t:"Celui qui exauce"},{n:"Al-Wasi",t:"Le Vaste"},{n:"Al-Hakim",t:"Le Sage"},{n:"Al-Wadud",t:"Le Tout-Affectueux"},{n:"Al-Majid",t:"Le Tout-Glorieux"},{n:"Al-Ba'ith",t:"Celui qui ressuscite"},{n:"Ash-Shahid",t:"Le Témoin"},{n:"Al-Haqq",t:"Le Vrai"},{n:"Al-Wakil",t:"Le Gérant"},{n:"Al-Qawiyy",t:"Le Fort"},{n:"Al-Matin",t:"Le Robuste"},{n:"Al-Waliyy",t:"Le Protecteur"},{n:"Al-Hamid",t:"Le Digne de Louange"},{n:"Al-Muhsi",t:"Celui qui dénombre"},{n:"Al-Mubdi",t:"L'Auteur"},{n:"Al-Mu'id",t:"Celui qui redonne vie"},{n:"Al-Muhyi",t:"Celui qui fait vivre"},{n:"Al-Mumit",t:"Celui qui fait mourir"},{n:"Al-Hayy",t:"Le Vivant"},{n:"Al-Qayyum",t:"Le Subsistant par lui-même"},{n:"Al-Wajid",t:"L'Opulent"},{n:"Al-Majid",t:"Le Noble"},{n:"Al-Wahid",t:"L'Unique"},{n:"As-Samad",t:"Le Soutien Universel"},{n:"Al-Qadir",t:"Le Puissant"},{n:"Al-Muqtadir",t:"Le Détenteur du Pouvoir"},{n:"Al-Muqaddim",t:"Celui qui met en avant"},{n:"Al-Mu'akhkhir",t:"Celui qui met en arrière"},{n:"Al-Awwal",t:"Le Premier"},{n:"Al-Akhir",t:"Le Dernier"},{n:"Az-Zahir",t:"L'Apparent"},{n:"Al-Batin",t:"Le Caché"},{n:"Al-Wali",t:"Le Maître"},{n:"Al-Muta'ali",t:"Le Sublime"},{n:"Al-Barr",t:"Le Bienfaisant"},{n:"At-Tawwab",t:"L'Accueillant au repentir"},{n:"Al-Muntaqim",t:"Le Vengeur"},{n:"Al-Afuww",t:"L'Indulgent"},{n:"Ar-Ra'uf",t:"Le Bienveillant"},{n:"Malik-ul-Mulk",t:"Le Maître de la Royauté"},{n:"Dhul-Jalal-wal-Ikram",t:"Le Détenteur de la Majesté"},{n:"Al-Muqsit",t:"L'Équitable"},{n:"Al-Jami",t:"Le Rassembleur"},{n:"Al-Ghani",t:"Le Riche"},{n:"Al-Mughni",t:"Celui qui enrichit"},{n:"Al-Mani",t:"Le Défenseur"},{n:"Ad-Darr",t:"Celui qui peut nuire"},{n:"An-Nafi",t:"L'Utile"},{n:"An-Nur",t:"La Lumière"},{n:"Al-Hadi",t:"Le Guide"},{n:"Al-Badi",t:"L'Inventeur"},{n:"Al-Baqi",t:"Le Permanent"},{n:"Al-Warith",t:"L'Héritier"},{n:"Ar-Rashid",t:"Le Droit"},{n:"As-Sabur",t:"Le Patient"}];
 
-        const COMMON_GOALS_LIST = [
-            { id: 'quran', text: 'Lire au moins 2 pages du Coran', icon: 'book-open' },
-            { id: 'solidary', text: 'Action solidaire (sourire, aide, don...)', icon: 'heart' },
-            { id: 'self', text: 'Action pour soi (Tahajjud, Sunna...)', icon: 'star' },
-            { id: 'arabic_word', text: 'Apprendre un mot du Coran en arabe', icon: 'languages' },
-            { id: 'positive', text: 'Envoyer de la force au groupe', icon: 'send' }
-        ];
+        const COMMON_GOALS_LIST = [{id:'quran',text:'Lire au moins 2 pages du Coran',icon:'book-open'},{id:'solidary',text:'Action solidaire (sourire, aide, don...)',icon:'heart'},{id:'self',text:'Action pour soi (Tahajjud, Sunna...)',icon:'star'},{id:'arabic_word',text:'Apprendre un mot du Coran en arabe',icon:'languages'},{id:'positive',text:'Envoyer de la force au groupe',icon:'send'}];
 
-        const spiritualLibrary = {
-            'triste': [{ text: "Ne t'afflige pas, car Allah est avec nous.", ref: "9:40" }, { text: "Certes, après la difficulté vient la facilité.", ref: "94:5" }],
-            'anxieuse': [{ text: "N'est-ce pas par l'évocation d'Allah que les cœurs s'apaisent ?", ref: "13:28" }, { text: "Allah ne charge aucune âme au-delà de sa capacité.", ref: "2:286" }],
-            'fatiguee': [{ text: "Et cherchez secours dans l'endurance et la prière.", ref: "2:45" }, { text: "Le jeûne est pour Moi, et c'est Moi qui en donne la récompense.", ref: "Hadith Qudsi" }],
-            'reconnaissante': [{ text: "Si vous êtes reconnaissants, J'augmenterai Mes bienfaits.", ref: "14:7" }, { text: "Lequel des bienfaits de votre Seigneur nierez-vous ?", ref: "55:13" }],
-            'motivee': [{ text: "Faites le bien ! Car Allah aime les bienfaisants.", ref: "2:195" }, { text: "Les meilleures actions sont les plus régulières.", ref: "Bukhari" }],
-            'istighfar': [{ text: "Dis : Ô Mes serviteurs... ne désespérez pas de la miséricorde d'Allah.", ref: "39:53" }, { text: "Et demandez pardon à votre Seigneur, ensuite, revenez à Lui.", ref: "11:90" }]
-        };
+        const spiritualLibrary = {'triste':[{text:"Ne t'afflige pas, car Allah est avec nous.",ref:"9:40"},{text:"Certes, après la difficulté vient la facilité.",ref:"94:5"}],'anxieuse':[{text:"N'est-ce pas par l'évocation d'Allah que les cœurs s'apaisent ?",ref:"13:28"},{text:"Allah ne charge aucune âme au-delà de sa capacité.",ref:"2:286"}],'fatiguee':[{text:"Et cherchez secours dans l'endurance et la prière.",ref:"2:45"},{text:"Le jeûne est pour Moi, et c'est Moi qui en donne la récompense.",ref:"Hadith Qudsi"}],'reconnaissante':[{text:"Si vous êtes reconnaissants, J'augmenterai Mes bienfaits.",ref:"14:7"},{text:"Lequel des bienfaits de votre Seigneur nierez-vous ?",ref:"55:13"}],'motivee':[{text:"Faites le bien ! Car Allah aime les bienfaisants.",ref:"2:195"},{text:"Les meilleures actions sont les plus régulières.",ref:"Bukhari"}],'istighfar':[{text:"Dis : Ô Mes serviteurs... ne désespérez pas de la miséricorde d'Allah.",ref:"39:53"},{text:"Et demandez pardon à votre Seigneur, ensuite, revenez à Lui.",ref:"11:90"}]};
 
-        const CATEGORIZED_QUIZ = {
-            'prophetes': [
-                { q: "Quel prophète a construit l'Arche ?", a: ["Ibrahim", "Moussa", "Nouh"], c: 2 },
-                { q: "Quel prophète a été jeté dans un puits ?", a: ["Youssef", "Ismaïl", "Ishak"], c: 0 },
-                { q: "Quel prophète a parlé aux animaux ?", a: ["Suleyman", "Daoud", "Youssef"], c: 0 },
-                { q: "Quel prophète a reçu l'Injil ?", a: ["Moussa", "Issa", "Ibrahim"], c: 1 },
-                { q: "Quel prophète est resté patient durant sa maladie ?", a: ["Ayoub", "Nouh", "Lout"], c: 0 },
-                { q: "Quel prophète a fendu la mer ?", a: ["Moussa", "Haroun", "Yousha"], c: 0 },
-                { q: "Quel prophète a parlé au berceau ?", a: ["Issa", "Yahya", "Moussa"], c: 0 },
-                { q: "Quel prophète a survécu au feu ?", a: ["Ibrahim", "Adam", "Ishak"], c: 0 },
-                { q: "Qui est le père de Youssef ?", a: ["Ya'qub", "Ibrahim", "Nouh"], c: 0 },
-                { q: "Quel prophète a construit la Kaaba ?", a: ["Ibrahim", "Adam", "Nouh"], c: 0 },
-                { q: "Quel prophète a eu 12 fils ?", a: ["Ya'qub", "Ibrahim", "Ishak"], c: 0 },
-                { q: "Quel prophète a été avalé par un poisson ?", a: ["Younous", "Ayoub", "Houd"], c: 0 },
-                { q: "Quel prophète a été envoyé à Thamud ?", a: ["Salih", "Houd", "Lout"], c: 0 },
-                { q: "Quel prophète a reçu le Zabur ?", a: ["Daoud", "Suleyman", "Moussa"], c: 0 },
-                { q: "Quel prophète a été créé sans père ?", a: ["Issa", "Yahya", "Adam"], c: 0 },
-                { q: "Quel est le premier prophète ?", a: ["Adam", "Nouh", "Idriss"], c: 0 },
-                { q: "Quel prophète est le 'Khalil' (Ami intime) d'Allah ?", a: ["Ibrahim", "Moussa", "Issa"], c: 0 },
-                { q: "Quel prophète a combattu Goliath (Jalut) ?", a: ["Daoud", "Suleyman", "Talut"], c: 0 },
-                { q: "Le prophète Muhammad (sws) est mort à quel âge ?", a: ["63 ans", "60 ans", "65 ans"], c: 0 },
-                { q: "Quel prophète a demandé à voir Allah ?", a: ["Moussa", "Ibrahim", "Issa"], c: 0 }
-            ],
-            'ramadan': [
-                { q: "En quelle année le jeûne a-t-il été instauré ?", a: ["An 1", "An 2", "An 3"], c: 1 },
-                { q: "L'aumône de fin de Ramadan ?", a: ["Zakat al-Maal", "Zakat al-Fitr", "Sadaqa"], c: 1 },
-                { q: "Porte du Paradis des jeûneurs ?", a: ["Ar-Rayyan", "Al-Kawthar", "Al-Firdaws"], c: 0 },
-                { q: "Nom de la nuit de la valeur ?", a: ["Laylat al-Qadr", "Laylat al-Mi'raj", "Achoura"], c: 0 },
-                { q: "Sens de 'Ramadan' ?", a: ["Chaleur intense", "Pardon", "Mois sacré"], c: 0 },
-                { q: "Fruit recommandé pour l'Iftar ?", a: ["Figue", "Datte", "Pomme"], c: 1 },
-                { q: "Bataille du 17 Ramadan ?", a: ["Badr", "Ouhoud", "Khandaq"], c: 0 },
-                { q: "Combien de jours compte Ramadan ?", a: ["29-30", "30-31", "28-29"], c: 0 },
-                { q: "Sourate mentionnant le Ramadan ?", a: ["Al-Baqarah", "Al-Fatiha", "An-Nisa"], c: 0 },
-                { q: "Repas avant l'aube ?", a: ["Suhoor", "Iftar", "Fajr"], c: 0 },
-                { q: "Manger par oubli rompt-il le jeûne ?", a: ["Non", "Oui", "Seulement si beaucoup"], c: 0 },
-                { q: "Laylat al-Qadr vaut plus que... ?", a: ["1000 mois", "1000 ans", "100 ans"], c: 0 },
-                { q: "Que signifie Iftar ?", a: ["Rupture", "Déjeuner", "Dîner"], c: 0 },
-                { q: "Quel acte est Sunna à l'Iftar ?", a: ["Se hâter de rompre", "Retarder la rupture", "Dormir avant"], c: 0 },
-                { q: "Quelle prière spéciale pendant Ramadan ?", a: ["Tarawih", "Duha", "Istikhara"], c: 0 },
-                { q: "Quand faire l'intention de jeûner ?", a: ["Avant l'aube (Fajr)", "À midi", "Au coucher du soleil"], c: 0 },
-                { q: "Le jeûne des 6 jours après Ramadan ?", a: ["Chawwal", "Safar", "Muharram"], c: 0 },
-                { q: "Qui est exempté de jeûne ?", a: ["Le voyageur", "L'étudiant", "Le travailleur"], c: 0 },
-                { q: "Peut-on utiliser le Siwak en jeûnant ?", a: ["Oui", "Non", "Déconseillé"], c: 0 },
-                { q: "Le vomissement involontaire annule-t-il ?", a: ["Non", "Oui", "Ça dépend"], c: 0 }
-            ],
-            'coran': [
-                { q: "Combien de Juz dans le Coran ?", a: ["20", "30", "40"], c: 1 },
-                { q: "Cœur du Coran ?", a: ["Yassine", "Ar-Rahman", "Al-Moulk"], c: 0 },
-                { q: "Fois nom Muhammad cité ?", a: ["4 fois", "25 fois", "114 fois"], c: 0 },
-                { q: "Sourate sans Basmala ?", a: ["At-Tawbah", "Al-Anfal", "An-Naml"], c: 0 },
-                { q: "Plus longue sourate ?", a: ["Al-Baqarah", "Al-Imran", "An-Nisa"], c: 0 },
-                { q: "Combien de sourates ?", a: ["114", "110", "120"], c: 0 },
-                { q: "Plus courte sourate ?", a: ["Al-Kawthar", "Al-Asr", "Al-Ikhlas"], c: 0 },
-                { q: "Lieu du 1er verset ?", a: ["Grotte de Hira", "Kaaba", "Médine"], c: 0 },
-                { q: "Sourate protégeant de la tombe ?", a: ["Al-Moulk", "Al-Kahf", "Al-Waqi'a"], c: 0 },
-                { q: "Sourate valant 1/3 du Coran ?", a: ["Al-Ikhlas", "Al-Fatiha", "Al-Kawthar"], c: 0 },
-                { q: "Quelle sourate a 2 Basmalas ?", a: ["An-Naml", "At-Tawbah", "Yasin"], c: 0 },
-                { q: "La Mère du Livre ?", a: ["Al-Fatiha", "Al-Baqarah", "Yasin"], c: 0 },
-                { q: "Combien de Sajdah (prosternations) ?", a: ["15", "10", "20"], c: 0 },
-                { q: "Dernière sourate révélée en entier ?", a: ["An-Nasr", "Al-Fatiha", "Al-Baqarah"], c: 0 },
-                { q: "Quel compagnon est cité par son nom ?", a: ["Zayd", "Ali", "Omar"], c: 0 },
-                { q: "Sourate contre le Dajjal ?", a: ["Al-Kahf", "Yasin", "Al-Moulk"], c: 0 },
-                { q: "Sourate nommée 'Les femmes' ?", a: ["An-Nisa", "Maryam", "Al-Mujadila"], c: 0 },
-                { q: "Le verset du Trône ?", a: ["Ayat al-Kursi", "Ayat an-Nur", "Ayat ad-Dayn"], c: 0 },
-                { q: "Combien d'années de révélation à la Mecque ?", a: ["13 ans", "10 ans", "23 ans"], c: 0 },
-                { q: "Première sourate complète révélée ?", a: ["Al-Fatiha", "Al-Alaq", "Al-Muddathir"], c: 0 }
-            ],
-            'islam': [
-                { q: "Le Sabre d'Allah ?", a: ["Khalid ibn al-Walid", "Ali", "Omar"], c: 0 },
-                { q: "Premier Muezzin ?", a: ["Bilal", "Abou Bakr", "Omar"], c: 0 },
-                { q: "Successeur d'Abou Bakr ?", a: ["Omar", "Othman", "Ali"], c: 0 },
-                { q: "Ville de la Kaaba ?", a: ["La Mecque", "Médine", "Jérusalem"], c: 0 },
-                { q: "Piliers de l'Islam ?", a: ["5", "6", "7"], c: 0 },
-                { q: "Piliers de la Foi ?", a: ["6", "5", "7"], c: 0 },
-                { q: "1er mois hégirien ?", a: ["Mouharram", "Ramadan", "Safar"], c: 0 },
-                { q: "Nom de l'émigration ?", a: ["Hégire", "Isra", "Mi'raj"], c: 0 },
-                { q: "Direction prière ?", a: ["Qibla", "Est", "Nord"], c: 0 },
-                { q: "Mosquée en Palestine ?", a: ["Al-Aqsa", "Quba", "Al-Haram"], c: 0 },
-                { q: "Ange de la révélation ?", a: ["Jibril", "Mikail", "Israfil"], c: 0 },
-                { q: "Ange de la mort ?", a: ["Azraël", "Malik", "Ridwan"], c: 0 },
-                { q: "Gardien de l'Enfer ?", a: ["Malik", "Ridwan", "Munkar"], c: 0 },
-                { q: "Femme de Pharaon croyante ?", a: ["Asiya", "Maryam", "Khadija"], c: 0 },
-                { q: "Première femme martyre ?", a: ["Sumayyah", "Khadija", "Aicha"], c: 0 },
-                { q: "La prière mortuaire a-t-elle des inclinaisons ?", a: ["Non", "Oui", "Parfois"], c: 0 },
-                { q: "L'ablution avec de la terre ?", a: ["Tayammum", "Ghusl", "Wudu"], c: 0 },
-                { q: "Combien de Takbirs dans la prière de l'Aïd ?", a: ["7 et 5", "3 et 3", "4 et 4"], c: 0 },
-                { q: "Année de l'Éléphant ?", a: ["Naissance du Prophète", "Hégire", "Mort du Prophète"], c: 0 },
-                { q: "Qui a dormi dans le lit du Prophète lors de l'Hégire ?", a: ["Ali", "Abou Bakr", "Othman"], c: 0 }
-            ]
-        };
+        const CATEGORIZED_QUIZ = {'prophetes':[{q:"Quel prophète a construit l'Arche ?",a:["Ibrahim","Moussa","Nouh"],c:2}],'ramadan':[{q:"Mois du jeûne ?",a:["Ramadan","Chawwal","Safar"],c:0}],'coran':[{q:"Coeur du Coran ?",a:["Yassine","Fatiha","Moulk"],c:0}],'islam':[{q:"Piliers de l'Islam ?",a:["5","6","4"],c:0}]};
 
         async function initApp() {
             try {
@@ -327,7 +187,7 @@
                     const dayData = namesExplanations[`day_${activeDayIdx}`] || {};
                     html += `<div class="pb-24 space-y-6"><div class="bg-amber-100 p-4 rounded-3xl text-center shadow-sm border border-amber-200"><h3 class="text-sm font-black text-amber-800 uppercase tracking-widest">Cercle de Science 📚</h3><p class="text-[10px] text-amber-600 italic">4 Noms par jour, une chacune !</p></div><div class="space-y-6">`;
                     USERS.forEach((u, i) => {
-                        const nameIdx = (dayOffset + i) % 99; const nameObj = ALLAH_NAMES[nameIdx]; const userExpl = dayData[u.id]; const isMe = currentUser?.id === u.id;
+                        const nameIdx = (dayOffset + i) % 99; const nameObj = ALLAH_NAMES[nameIdx % ALLAH_NAMES.length]; const userExpl = dayData[u.id]; const isMe = currentUser?.id === u.id;
                         html += `<div class="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-50 relative overflow-hidden"><div class="absolute top-0 right-0 ${u.color.replace('text-', 'bg-').replace('100', '500')} w-16 h-16 rounded-bl-full opacity-10"></div><div class="flex justify-between items-start mb-4"><div><span class="text-[9px] font-black uppercase tracking-widest text-slate-300 block mb-1">Attribué à ${u.name}</span><h2 class="text-xl font-black text-slate-800">${nameObj.n}</h2><p class="text-xs italic text-slate-500">${nameObj.t}</p></div><div class="w-10 h-10 rounded-full ${u.color} flex items-center justify-center font-bold text-sm border-2 border-white shadow-sm">${u.name.charAt(0)}</div></div>${userExpl ? `<div class="bg-slate-50 p-4 rounded-2xl text-xs text-slate-700 leading-relaxed border border-slate-100 whitespace-pre-line">${userExpl.text}</div><div class="mt-2 flex justify-between items-center"><span class="text-[8px] font-bold text-emerald-500 uppercase tracking-widest">Validé ✨</span>${isMe ? `<button onclick="window.resetNameExpl('${u.id}')" class="text-[8px] font-bold text-amber-500 uppercase flex items-center gap-1 border border-amber-100 px-2 py-1 rounded-lg bg-amber-50"><i data-lucide="rotate-ccw" class="w-3 h-3"></i> Modifier</button>` : ''}</div>` : (isMe ? `<div class="mt-2"><p class="text-[10px] text-rose-500 font-bold mb-2 uppercase">C'est ton tour ! Que signifie ce nom ?</p><textarea id="name-expl-${u.id}" rows="4" placeholder="Partage ta science..." class="w-full bg-slate-50 rounded-2xl p-3 text-xs outline-none mb-2 border border-slate-100"></textarea><button onclick="window.submitNameExpl('${u.id}')" class="w-full bg-slate-900 text-white py-3 rounded-xl font-black text-[10px] uppercase shadow-md">Publier ma leçon</button></div>` : `<div class="bg-slate-50 p-4 rounded-2xl text-center border border-slate-100 border-dashed"><p class="text-[10px] text-slate-400 italic">En attente de ${u.name}...</p></div>`)}</div>`;
                     });
                     html += `</div></div>`;
@@ -412,8 +272,23 @@
             updateWaterUI();
             const dh = d.dhikr || { sub: 0, alh: 0, ast: 0, akb: 0 }; document.getElementById('count-sub').innerText = dh.sub || 0; document.getElementById('count-alh').innerText = dh.alh || 0; document.getElementById('count-ast').innerText = dh.ast || 0; document.getElementById('count-akb').innerText = dh.akb || 0;
             
+            // CORRECTION ICI : ON UTILISE UNE BOUCLE ET PAS DES BACKTICKS IMBRIQUÉS DANS L'HTML
             const readings = d.readingLogs || [];
-            document.getElementById('quran-readings-list').innerHTML = readings.length > 0 ? readings.map((r, i) => `<div class="flex justify-between items-center text-[10px] py-2 border-b border-dashed border-emerald-100 last:border-0"><div><span class="font-bold text-emerald-800">${r.surah}</span> <span class="text-emerald-500 italic ml-1">(V. ${r.start} à ${r.end})</span></div><button onclick="window.removeQuranReading(${i})" class="text-rose-300 hover:text-rose-500"><i data-lucide="x" class="w-3 h-3"></i></button></div>`).join('') : '<p class="text-[9px] text-emerald-300 italic py-2">Aucune lecture enregistrée</p>';
+            let readingsHtml = "";
+            if (readings.length > 0) {
+                readingsHtml = readings.map((r, i) => `
+                    <div class="flex justify-between items-center text-[10px] py-2 border-b border-dashed border-emerald-100 last:border-0 bg-white px-3 rounded-lg shadow-sm">
+                        <div>
+                            <span class="font-bold text-emerald-800">${r.surah}</span> 
+                            <span class="text-emerald-500 italic ml-1">(V. ${r.start} à ${r.end})</span>
+                        </div>
+                        <button onclick="window.removeQuranReading(${i})" class="text-rose-300 hover:text-rose-500"><i data-lucide="x" class="w-3 h-3"></i></button>
+                    </div>
+                `).join('');
+            } else {
+                readingsHtml = '<p class="text-[9px] text-emerald-300 italic py-2">Aucune lecture enregistrée aujourd\'hui</p>';
+            }
+            document.getElementById('quran-readings-list').innerHTML = readingsHtml;
 
             // TARAWIH STOP INPUT
             document.getElementById('input-tarawih-stop').value = d.tarawihStop || "";
@@ -521,22 +396,21 @@
 
                 <div class="pt-6 border-t border-slate-100 bg-indigo-50/20 p-6 rounded-[2.5rem] text-center">
                     <div class="flex justify-between items-center mb-4"><div class="flex items-center gap-3 text-left"><i data-lucide="moon" class="w-10 h-10 text-indigo-500"></i><span class="text-xs font-black uppercase text-indigo-600 tracking-widest italic text-left">Tarawih</span></div><button onclick="window.toggleTarawih()" id="tarawih-btn" class="transition-all"></button></div>
-                    <div class="flex items-center gap-2 mb-2 bg-white rounded-xl px-3 border border-indigo-50"><span class="text-[9px] font-bold text-indigo-300 uppercase whitespace-nowrap">Arrêt mosquée :</span><input type="text" id="input-tarawih-stop" onchange="window.saveTarawihStop()" placeholder="ex: Sourate Yasin, v.12" class="w-full py-3 text-xs outline-none text-indigo-800 font-bold bg-transparent"></div>
+                    <div class="flex items-center gap-2 mb-2 bg-white rounded-xl px-3 border border-indigo-50 shadow-sm"><span class="text-[9px] font-bold text-indigo-300 uppercase whitespace-nowrap">Arrêt mosquée :</span><input type="text" id="input-tarawih-stop" onchange="window.saveTarawihStop()" placeholder="ex: Sourate Yasin, v.12" class="w-full py-3 text-xs outline-none text-indigo-800 font-bold bg-transparent"></div>
                     <textarea id="input-tarawih-notes" rows="6" placeholder="Ressenti de la prière ce soir ?" class="w-full bg-white border border-indigo-50 rounded-2xl p-5 text-xs outline-none focus:ring-2 focus:ring-indigo-100 journal-box shadow-sm text-left"></textarea>
                 </div>
                 
                 <div class="pt-6 border-t border-slate-100 bg-emerald-50/20 p-6 rounded-[2.5rem] text-center">
                     <div class="flex items-center gap-3 mb-4 text-left"><i data-lucide="book-open" class="w-10 h-10 text-emerald-500"></i><span class="text-xs font-black uppercase text-emerald-600 tracking-widest italic text-left">Journal de Lecture Coran</span></div>
-                    <div class="flex gap-2 mb-2">
-                        <input list="surah-list" type="text" id="input-surah-new" placeholder="Sourate (ex: Al-Mulk)" class="w-2/3 bg-white border border-emerald-50 rounded-xl p-4 text-xs outline-none shadow-sm text-left">
-                        <button onclick="window.addQuranReading()" class="w-1/3 bg-emerald-500 text-white rounded-xl shadow-md font-bold text-xs uppercase tracking-widest">Ajouter</button>
+                    <div class="bg-white p-4 rounded-2xl border border-emerald-50 shadow-sm mb-3">
+                        <input list="surah-list" type="text" id="input-surah-new" placeholder="Sourate (ex: Al-Mulk)" class="w-full bg-slate-50 border-none rounded-xl p-3 text-xs outline-none mb-2 font-bold text-slate-700">
+                        <div class="flex gap-2 mb-2">
+                            <input type="number" id="input-quran-start" placeholder="Début V." class="w-1/2 bg-slate-50 border-none rounded-xl p-3 text-xs outline-none text-center">
+                            <input type="number" id="input-quran-end" placeholder="Fin V." class="w-1/2 bg-slate-50 border-none rounded-xl p-3 text-xs outline-none text-center">
+                        </div>
+                        <button onclick="window.addQuranReading()" class="w-full bg-emerald-500 text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-md active:scale-95 transition">Enregistrer la lecture</button>
                     </div>
-                    <div class="flex gap-2 items-center mb-4">
-                        <input type="number" id="input-quran-start" placeholder="V. Début" class="w-1/2 bg-white border border-emerald-50 rounded-xl p-4 text-xs outline-none shadow-sm text-center">
-                        <span class="text-[9px] font-bold text-emerald-300">à</span>
-                        <input type="number" id="input-quran-end" placeholder="V. Fin" class="w-1/2 bg-white border border-emerald-50 rounded-xl p-4 text-xs outline-none shadow-sm text-center">
-                    </div>
-                    <div id="quran-readings-list" class="space-y-1 mb-4 bg-white/50 p-3 rounded-2xl"></div>
+                    <div id="quran-readings-list" class="space-y-1 mb-4 bg-white/50 p-2 rounded-2xl"></div>
                     <textarea id="input-quran-notes" rows="6" placeholder="Verset marquant / Notes..." class="w-full bg-white border border-emerald-50 rounded-2xl p-5 text-xs outline-none journal-box shadow-sm text-left"></textarea>
                 </div>
 
