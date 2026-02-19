@@ -722,8 +722,7 @@
     window.selectDay = async (idx) => {
         if(idx === activeDayIdx) return;
         activeDayIdx = idx;
-        // Vider les champs immédiatement, puis charger les données du nouveau jour
-        document.getElementById('input-journal').value = '⏳';
+        document.getElementById('input-journal').value = '';
         document.getElementById('input-tarawih-notes').value = '';
         document.getElementById('input-quran-notes').value = '';
         document.getElementById('input-tarawih-stop').value = '';
