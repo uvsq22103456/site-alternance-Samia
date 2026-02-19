@@ -669,61 +669,67 @@
         document.getElementById('welcome-msg').innerText = `As salam aleykoum ${user.name} ✨`;
         syncData(user.id);
         await loadReadings();
-        await loadNotes();
         updateReadingsList();
-        refreshNotes();
-        attachAutoSave();
+        await loadNotesForDay(activeDayIdx);
     };
     // Sauvegarde les notes du jour courant dans notesData puis Firebase
-    function saveCurrentNotes() {
-        const n = getNotesForDay();
-        n.journal = (document.getElementById('input-journal') || {}).value || '';
-        n.tarawihNotes = (document.getElementById('input-tarawih-notes') || {}).value || '';
-        n.quranNotes = (document.getElementById('input-quran-notes') || {}).value || '';
-        n.tarawihStop = (document.getElementById('input-tarawih-stop') || {}).value || '';
+    // ===== NOTES : système ultra-simple =====
+    // Chaque appel lit/écrit directement Firebase avec la clé du jour exact.
+    // Pas d'autosave, pas d'events, pas de cache intermédiaire.
+
+    function notesRef(dayIdx) {
+        return doc(db, 'artifacts', appId, 'public', 'data', 'notes', `${currentUser.id}_day${dayIdx}`);
     }
 
-    let saveTimer = null;
-    function scheduleSaveNotes() {
-        if(isRefreshingNotes) return; // ignorer les events déclenchés programmatiquement
-        saveCurrentNotes();
-        clearTimeout(saveTimer);
-        saveTimer = setTimeout(() => saveNotes(), 1500);
+    async function loadNotesForDay(dayIdx) {
+        try {
+            const snap = await getDoc(notesRef(dayIdx));
+            const n = snap.exists() ? snap.data() : {};
+            document.getElementById('input-journal').value = n.journal || '';
+            document.getElementById('input-tarawih-notes').value = n.tarawihNotes || '';
+            document.getElementById('input-quran-notes').value = n.quranNotes || '';
+            document.getElementById('input-tarawih-stop').value = n.tarawihStop || '';
+        } catch(e) {
+            document.getElementById('input-journal').value = '';
+            document.getElementById('input-tarawih-notes').value = '';
+            document.getElementById('input-quran-notes').value = '';
+            document.getElementById('input-tarawih-stop').value = '';
+        }
     }
 
-    function attachAutoSave() {
-        ['input-journal','input-tarawih-notes','input-quran-notes','input-tarawih-stop'].forEach(id => {
-            const el = document.getElementById(id);
-            if(el) { el.removeEventListener('input', scheduleSaveNotes); el.addEventListener('input', scheduleSaveNotes); }
-        });
-    }
+    window.saveJournal = async () => {
+        const btn = document.querySelector('[onclick="window.saveJournal()"]');
+        if(btn) btn.innerText = '⏳ Enregistrement...';
+        try {
+            await setDoc(notesRef(activeDayIdx), {
+                journal: document.getElementById('input-journal').value || '',
+                tarawihNotes: document.getElementById('input-tarawih-notes').value || '',
+                quranNotes: document.getElementById('input-quran-notes').value || '',
+                tarawihStop: document.getElementById('input-tarawih-stop').value || '',
+                day: activeDayIdx,
+                userId: currentUser.id,
+                savedAt: Date.now()
+            });
+            showToast("Journée enregistrée ✨");
+        } catch(e) {
+            showToast("Erreur, réessaie !");
+        }
+        if(btn) btn.innerText = 'Enregistrer ma journée ✨';
+    };
 
-    // Mise à jour de l'UI avec les notes du jour actif
-    // On désactive les listeners pendant le remplissage pour éviter la contamination
-    let isRefreshingNotes = false;
-    function refreshNotes() {
-        isRefreshingNotes = true;
-        const n = getNotesForDay();
-        const j = document.getElementById('input-journal');
-        const tn = document.getElementById('input-tarawih-notes');
-        const qn = document.getElementById('input-quran-notes');
-        const ts = document.getElementById('input-tarawih-stop');
-        if(j) j.value = n.journal || '';
-        if(tn) tn.value = n.tarawihNotes || '';
-        if(qn) qn.value = n.quranNotes || '';
-        if(ts) ts.value = n.tarawihStop || '';
-        isRefreshingNotes = false;
-    }
+    window.saveTarawihStop = () => {}; // géré par saveJournal
 
     window.selectDay = async (idx) => {
         if(idx === activeDayIdx) return;
-        saveCurrentNotes();
-        await saveNotes();
         activeDayIdx = idx;
+        // Vider les champs immédiatement, puis charger les données du nouveau jour
+        document.getElementById('input-journal').value = '⏳';
+        document.getElementById('input-tarawih-notes').value = '';
+        document.getElementById('input-quran-notes').value = '';
+        document.getElementById('input-tarawih-stop').value = '';
         refreshUI();
-        refreshNotes();
         updateReadingsList();
-        attachAutoSave();
+        await loadNotesForDay(activeDayIdx);
     };
     window.toggleFast = () => { getDay().fasting = !getDay().fasting; pushData(); refreshUI(); };
     window.togglePrayer = (i) => { 
@@ -813,30 +819,6 @@
             await setDoc(ref, readingsData);
             return true;
         } catch(e) { console.error('saveReadings error:', e); return false; }
-    }
-
-    // Notes stockées dans Firebase (document dédié, clés string jour_1, jour_2...)
-    async function loadNotes() {
-        try {
-            const ref = doc(db, 'artifacts', appId, 'public', 'data', 'notes', currentUser.id);
-            const snap = await getDoc(ref);
-            notesData = snap.exists() ? snap.data() : {};
-        } catch(e) { notesData = {}; }
-    }
-
-    async function saveNotes() {
-        try {
-            const ref = doc(db, 'artifacts', appId, 'public', 'data', 'notes', currentUser.id);
-            await setDoc(ref, notesData);
-        } catch(e) { console.error('saveNotes:', e); }
-    }
-
-    function getNoteKey(idx) { return `j_${idx !== undefined ? idx : activeDayIdx}`; }
-
-    function getNotesForDay(idx) {
-        const k = getNoteKey(idx);
-        if(!notesData[k]) notesData[k] = { journal: '', tarawihNotes: '', quranNotes: '', tarawihStop: '' };
-        return notesData[k];
     }
 
     window.addQuranReading = async () => {
