@@ -685,6 +685,7 @@
 
     let saveTimer = null;
     function scheduleSaveNotes() {
+        if(isRefreshingNotes) return; // ignorer les events déclenchés programmatiquement
         saveCurrentNotes();
         clearTimeout(saveTimer);
         saveTimer = setTimeout(() => saveNotes(), 1500);
@@ -698,7 +699,10 @@
     }
 
     // Mise à jour de l'UI avec les notes du jour actif
+    // On désactive les listeners pendant le remplissage pour éviter la contamination
+    let isRefreshingNotes = false;
     function refreshNotes() {
+        isRefreshingNotes = true;
         const n = getNotesForDay();
         const j = document.getElementById('input-journal');
         const tn = document.getElementById('input-tarawih-notes');
@@ -708,6 +712,7 @@
         if(tn) tn.value = n.tarawihNotes || '';
         if(qn) qn.value = n.quranNotes || '';
         if(ts) ts.value = n.tarawihStop || '';
+        isRefreshingNotes = false;
     }
 
     window.selectDay = async (idx) => {
