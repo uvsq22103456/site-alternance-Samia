@@ -669,6 +669,7 @@
         syncData(user.id);
         await loadReadings();
         updateReadingsList();
+        attachAutoSave();
     };
     // Sauvegarde automatique des champs texte du jour actif
     function autoSaveCurrentDay() {
@@ -683,6 +684,22 @@
         if(tarawihNotesEl) d.tarawihNotes = tarawihNotesEl.value;
         if(journalEl) d.journal = journalEl.value;
         if(tarawihStopEl) d.tarawihStop = tarawihStopEl.value;
+    }
+
+    // Debounce pour ne pas spammer Firebase à chaque touche
+    let saveTimer = null;
+    function scheduleSave() {
+        autoSaveCurrentDay();
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(() => pushData(), 1500);
+    }
+
+    // Attacher les listeners d'autosave après le chargement
+    function attachAutoSave() {
+        ['input-journal','input-tarawih-notes','input-quran-notes','input-tarawih-stop'].forEach(id => {
+            const el = document.getElementById(id);
+            if(el) el.addEventListener('input', scheduleSave);
+        });
     }
 
     window.selectDay = async (idx) => {
@@ -703,6 +720,7 @@
         activeDayIdx = idx;
         refreshUI();
         updateReadingsList();
+        attachAutoSave();
     };
     window.toggleFast = () => { getDay().fasting = !getDay().fasting; pushData(); refreshUI(); };
     window.togglePrayer = (i) => { 
