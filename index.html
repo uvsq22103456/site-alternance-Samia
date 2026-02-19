@@ -761,12 +761,6 @@
     window.openResetModal = () => document.getElementById('reset-modal').classList.remove('hidden');
     window.closeResetModal = () => document.getElementById('reset-modal').classList.add('hidden');
     window.confirmResetDhikr = () => { getDay().dhikr = { sub: 0, alh: 0, ast: 0, akb: 0, tah: 0 }; refreshUI(); pushData(); window.closeResetModal(); };
-    window.saveJournal = async () => {
-        saveCurrentNotes();
-        await saveNotes();
-        showToast("Journée enregistrée ✨");
-    };
-    window.saveTarawihStop = () => { scheduleSaveNotes(); };
     window.addObjective = () => {
         const input = document.getElementById('objective-input');
         if(!input.value.trim()) return;
@@ -1047,7 +1041,7 @@
     </header>
 
 ```
-<div id="tab-calendar" class="p-4 space-y-6 animate-in fade-in duration-300">
+<div id="tab-calendar" class="p-4 space-y-6 pb-32 animate-in fade-in duration-300">
     <section class="bg-white border-2 border-rose-100 rounded-[2.5rem] p-6 shadow-sm">
         <div class="flex items-start gap-4">
             <div class="bg-rose-500 p-3 rounded-2xl shadow-md text-white"><i data-lucide="heart" class="w-5 h-5 fill-current"></i></div>
