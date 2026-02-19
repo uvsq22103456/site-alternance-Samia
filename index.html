@@ -684,14 +684,12 @@
     async function loadNotesForDay(dayIdx) {
         try {
             const snap = await getDoc(notesRef(dayIdx));
-            alert(`LOAD jour=${dayIdx} exists=${snap.exists()} data=${snap.exists() ? JSON.stringify(snap.data()).substring(0,60) : 'vide'}`);
             const n = snap.exists() ? snap.data() : {};
             document.getElementById('input-journal').value = n.journal || '';
             document.getElementById('input-tarawih-notes').value = n.tarawihNotes || '';
             document.getElementById('input-quran-notes').value = n.quranNotes || '';
             document.getElementById('input-tarawih-stop').value = n.tarawihStop || '';
         } catch(e) {
-            alert(`LOAD ERREUR jour=${dayIdx}: ${e.message}`);
             document.getElementById('input-journal').value = '';
             document.getElementById('input-tarawih-notes').value = '';
             document.getElementById('input-quran-notes').value = '';
@@ -702,12 +700,9 @@
     window.saveJournal = async () => {
         const btn = document.querySelector('[onclick="window.saveJournal()"]');
         if(btn) btn.innerText = '⏳ Enregistrement...';
-        const journalVal = document.getElementById('input-journal').value || '';
-        const refPath = `notes/${currentUser.id}_day${activeDayIdx}`;
-        alert(`SAVE: user=${currentUser.id} day=${activeDayIdx} journal="${journalVal.substring(0,30)}" path=${refPath}`);
         try {
             await setDoc(notesRef(activeDayIdx), {
-                journal: journalVal,
+                journal: document.getElementById('input-journal').value || '',
                 tarawihNotes: document.getElementById('input-tarawih-notes').value || '',
                 quranNotes: document.getElementById('input-quran-notes').value || '',
                 tarawihStop: document.getElementById('input-tarawih-stop').value || '',
@@ -715,10 +710,9 @@
                 userId: currentUser.id,
                 savedAt: Date.now()
             });
-            alert(`SAVE SUCCESS pour jour ${activeDayIdx}`);
             showToast("Journée enregistrée ✨");
         } catch(e) {
-            alert(`SAVE ERREUR: ${e.message}`);
+            showToast("Erreur, réessaie !");
         }
         if(btn) btn.innerText = 'Enregistrer ma journée ✨';
     };
