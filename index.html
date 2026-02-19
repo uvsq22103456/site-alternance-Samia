@@ -113,6 +113,7 @@
     let quizScore = 0;
     let currentTheme = ""; 
     let isQuizProcessing = false;
+    let currentQuestions = [];
     
     const USERS = [
         { id: 'samia', name: 'Samia', pin: '2025', color: 'bg-rose-100 text-rose-600' },
@@ -832,6 +833,8 @@
         if(!notesData[k]) notesData[k] = { journal: '', tarawihNotes: '', quranNotes: '', tarawihStop: '' };
         return notesData[k];
     }
+
+    window.addQuranReading = async () => {
         const surahEl = document.getElementById('input-surah-new');
         const startEl = document.getElementById('input-quran-start');
         const endEl = document.getElementById('input-quran-end');
